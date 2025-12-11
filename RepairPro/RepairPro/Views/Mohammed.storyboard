@@ -80,6 +80,12 @@
                                     <constraint firstAttribute="bottom" secondItem="NK6-tc-Dvr" secondAttribute="bottom" constant="24" id="k53-G1-8gP"/>
                                 </constraints>
                             </view>
+                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="r9j-OT-QzB">
+                                <rect key="frame" x="159" y="467" width="75" height="39"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <state key="normal" title="Button"/>
+                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
+                            </button>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="FOs-5B-taj"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
