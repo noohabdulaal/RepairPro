@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="nH5-ci-OxL">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
@@ -31,9 +31,8 @@
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="bDY-ID-yMo">
-                                <rect key="frame" x="20" y="118" width="353" height="45"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="bDY-ID-yMo" userLabel="searchContainerView">
+                                <rect key="frame" x="20" y="138" width="353" height="45"/>
                                 <subviews>
                                     <textField opaque="NO" contentMode="scaleToFill" horizontalHuggingPriority="248" fixedFrame="YES" contentHorizontalAlignment="left" contentVerticalAlignment="center" placeholder="Search by name or department" textAlignment="natural" minimumFontSize="17" translatesAutoresizingMaskIntoConstraints="NO" id="2e8-3f-Q68">
                                         <rect key="frame" x="16" y="5" width="321" height="34"/>
@@ -44,9 +43,18 @@
                                     </textField>
                                 </subviews>
                                 <color key="backgroundColor" red="0.90980392160000001" green="0.90980392160000001" blue="0.90980392160000001" alpha="1" colorSpace="calibratedRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="height" constant="45" id="7sn-OW-MAg"/>
+                                </constraints>
                                 <userDefinedRuntimeAttributes>
                                     <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
                                         <integer key="value" value="12"/>
+                                    </userDefinedRuntimeAttribute>
+                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.borderWidth">
+                                        <integer key="value" value="1"/>
+                                    </userDefinedRuntimeAttribute>
+                                    <userDefinedRuntimeAttribute type="color" keyPath="layer.borderColor">
+                                        <color key="value" red="0.81960784313725488" green="0.81960784313725488" blue="0.83921568627450982" alpha="1" colorSpace="calibratedRGB"/>
                                     </userDefinedRuntimeAttribute>
                                     <userDefinedRuntimeAttribute type="boolean" keyPath="layer.masksToBounds" value="YES"/>
                                 </userDefinedRuntimeAttributes>
@@ -58,42 +66,74 @@
                                 <state key="normal" title="Button"/>
                                 <buttonConfiguration key="configuration" style="filled" title="+ Add Technician"/>
                             </button>
-                            <view contentMode="scaleToFill" ambiguous="YES" translatesAutoresizingMaskIntoConstraints="NO" id="BW2-Xf-GLT">
-                                <rect key="frame" x="20" y="171" width="353" height="40"/>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="BW2-Xf-GLT" userLabel="departmentDropdownView">
+                                <rect key="frame" x="20" y="195" width="353" height="45"/>
                                 <subviews>
-                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="All Departments" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LQe-4P-70L">
-                                        <rect key="frame" x="8" y="10" width="123" height="21"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="All Departments" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LQe-4P-70L">
+                                        <rect key="frame" x="15.999999999999993" y="12" width="122.33333333333331" height="21"/>
                                         <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                         <nil key="textColor"/>
                                         <nil key="highlightedColor"/>
                                     </label>
-                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" ambiguous="YES" image="chevron.down" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="NK6-tc-Dvr">
-                                        <rect key="frame" x="303" y="29.333333333333336" width="42" height="10.333333333333336"/>
+                                    <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="chevron.down" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="iRO-Lb-vGc">
+                                        <rect key="frame" x="313" y="15.999999999999989" width="24" height="13.999999999999996"/>
+                                        <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                        <constraints>
+                                            <constraint firstAttribute="height" constant="24" id="EtY-da-ngl"/>
+                                            <constraint firstAttribute="width" constant="24" id="w28-oX-Slb"/>
+                                        </constraints>
                                     </imageView>
                                 </subviews>
                                 <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                 <constraints>
-                                    <constraint firstItem="NK6-tc-Dvr" firstAttribute="top" secondItem="BW2-Xf-GLT" secondAttribute="top" constant="24" id="809-n0-eKy"/>
-                                    <constraint firstAttribute="trailing" secondItem="NK6-tc-Dvr" secondAttribute="trailing" constant="16" id="MiZ-PI-JDh"/>
-                                    <constraint firstItem="NK6-tc-Dvr" firstAttribute="centerY" secondItem="BW2-Xf-GLT" secondAttribute="centerY" id="fSy-QI-ePW"/>
-                                    <constraint firstAttribute="bottom" secondItem="NK6-tc-Dvr" secondAttribute="bottom" constant="24" id="k53-G1-8gP"/>
+                                    <constraint firstItem="LQe-4P-70L" firstAttribute="leading" secondItem="BW2-Xf-GLT" secondAttribute="leading" constant="16" id="0Yy-XB-vvZ"/>
+                                    <constraint firstItem="iRO-Lb-vGc" firstAttribute="centerY" secondItem="BW2-Xf-GLT" secondAttribute="centerY" id="WaB-Ql-2le"/>
+                                    <constraint firstItem="LQe-4P-70L" firstAttribute="centerY" secondItem="BW2-Xf-GLT" secondAttribute="centerY" id="ZPe-3n-30h"/>
+                                    <constraint firstAttribute="trailing" secondItem="iRO-Lb-vGc" secondAttribute="trailing" constant="16" id="ac6-qE-k8F"/>
+                                    <constraint firstAttribute="height" constant="45" id="sGq-5K-Apm"/>
                                 </constraints>
                             </view>
-                            <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="r9j-OT-QzB">
-                                <rect key="frame" x="159" y="467" width="75" height="39"/>
+                            <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="1kp-A7-9sO" userLabel="sectionContainerView">
+                                <rect key="frame" x="16" y="118" width="361" height="153"/>
                                 <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <state key="normal" title="Button"/>
-                                <buttonConfiguration key="configuration" style="plain" title="Button"/>
-                            </button>
+                                <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                            </view>
                         </subviews>
                         <viewLayoutGuide key="safeArea" id="FOs-5B-taj"/>
-                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                        <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <constraints>
+                            <constraint firstItem="bDY-ID-yMo" firstAttribute="leading" secondItem="FOs-5B-taj" secondAttribute="leading" constant="20" id="75L-2l-pvc"/>
+                            <constraint firstItem="BW2-Xf-GLT" firstAttribute="top" secondItem="bDY-ID-yMo" secondAttribute="bottom" constant="12" id="B6d-SA-NvY"/>
+                            <constraint firstItem="FOs-5B-taj" firstAttribute="trailing" secondItem="BW2-Xf-GLT" secondAttribute="trailing" constant="20" id="S3T-Zd-vp0"/>
+                            <constraint firstItem="FOs-5B-taj" firstAttribute="trailing" secondItem="bDY-ID-yMo" secondAttribute="trailing" constant="20" id="fRG-4q-iU2"/>
+                            <constraint firstItem="BW2-Xf-GLT" firstAttribute="leading" secondItem="FOs-5B-taj" secondAttribute="leading" constant="20" id="nz3-Ef-DKh"/>
+                            <constraint firstItem="bDY-ID-yMo" firstAttribute="top" secondItem="FOs-5B-taj" secondAttribute="top" constant="20" id="o9d-ac-Uyx"/>
+                        </constraints>
                     </view>
+                    <connections>
+                        <outlet property="departmentDropdownView" destination="BW2-Xf-GLT" id="F9k-nQ-SOu"/>
+                        <outlet property="searchContainerView" destination="bDY-ID-yMo" id="zhy-F4-bqx"/>
+                        <outlet property="sectionContainerView" destination="1kp-A7-9sO" id="7pQ-F9-cUG"/>
+                    </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="aZD-NT-TqW" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="872.51908396946567" y="3.5211267605633805"/>
+        </scene>
+        <!--View Controller-->
+        <scene sceneID="T6x-tq-8Ja">
+            <objects>
+                <viewController id="03L-BC-BqO" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="hGg-KF-7x7">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="Bmc-KP-sRj"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="dcB-Vf-Ygd" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="1576" y="4"/>
         </scene>
     </scenes>
     <resources>
