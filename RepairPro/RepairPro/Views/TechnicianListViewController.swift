@@ -5,7 +5,6 @@
 //  Created by BP-36-201-02 on 14/12/2025.
 //
 
-import Foundation
 import UIKit
 
 class TechnicianListViewController: UIViewController {
@@ -14,7 +13,8 @@ class TechnicianListViewController: UIViewController {
     @IBOutlet weak var sectionContainerView: UIView!
     @IBOutlet weak var searchContainerView: UIView!
     @IBOutlet weak var departmentDropdownView: UIView!
-
+    @IBOutlet weak var addTechnicianButton: UIButton!
+    
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -25,9 +25,19 @@ class TechnicianListViewController: UIViewController {
         styleDepartmentDropdown()
     }
 
-    // MARK: - Styling Methods
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
 
-    /// Light grey background for the whole screen (Figma canvas)
+        // Important: shadowPath must be updated AFTER layout so it matches the real size
+        sectionContainerView.layer.shadowPath = UIBezierPath(
+            roundedRect: sectionContainerView.bounds,
+            cornerRadius: sectionContainerView.layer.cornerRadius
+        ).cgPath
+    }
+
+    // MARK: - Styling
+
+    /// Screen background (Figma canvas)
     private func styleScreenBackground() {
         view.backgroundColor = UIColor(
             red: 242/255,
@@ -37,27 +47,41 @@ class TechnicianListViewController: UIViewController {
         )
     }
 
-    /// Grey container that groups search + dropdown
+    /// Card container (search + dropdown)
     private func styleSectionContainer() {
+        // Slightly darker than screen bg (so it’s visible)
         sectionContainerView.backgroundColor = UIColor(
-            red: 242/255,
-            green: 242/255,
-            blue: 247/255,
+            red: 232/255,
+            green: 232/255,
+            blue: 238/255,
             alpha: 1
         )
 
         sectionContainerView.layer.cornerRadius = 16
-        sectionContainerView.layer.masksToBounds = true
+        sectionContainerView.layer.masksToBounds = false
+
+        // Bottom-heavy, tighter (less spread)
+        sectionContainerView.layer.shadowColor = UIColor.black.cgColor
+        sectionContainerView.layer.shadowOpacity = 0.22
+        sectionContainerView.layer.shadowRadius = 6
+        sectionContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
     }
 
-    /// White rounded search bar (NO border)
+    /// Search bar container (should look like a filled search field)
     private func styleSearchBar() {
-        searchContainerView.backgroundColor = .white
+        // Proper "search gray" (darker than the card)
+        searchContainerView.backgroundColor = UIColor(
+            red: 220/255,
+            green: 220/255,
+            blue: 225/255,
+            alpha: 1
+        )
+
         searchContainerView.layer.cornerRadius = 12
         searchContainerView.layer.masksToBounds = true
     }
 
-    /// White rounded dropdown with subtle stroke
+    /// Dropdown container
     private func styleDepartmentDropdown() {
         departmentDropdownView.backgroundColor = .white
         departmentDropdownView.layer.cornerRadius = 12
@@ -71,5 +95,9 @@ class TechnicianListViewController: UIViewController {
         ).cgColor
 
         departmentDropdownView.layer.masksToBounds = true
+    }
+    private func styleAddTechnicianButton() {
+        addTechnicianButton.layer.cornerRadius = 12
+        addTechnicianButton.layer.masksToBounds = true
     }
 }
