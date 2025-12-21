@@ -7,22 +7,38 @@
 
 import UIKit
 
-class TechnicianListViewController: UIViewController {
+class TechnicianListViewController: UIViewController,
+                                   UITableViewDataSource,
+                                   UITableViewDelegate {
 
     // MARK: - Outlets
     @IBOutlet weak var sectionContainerView: UIView!
     @IBOutlet weak var searchContainerView: UIView!
     @IBOutlet weak var departmentDropdownView: UIView!
     @IBOutlet weak var addTechnicianButton: UIButton!
+    @IBOutlet weak var tableView: UITableView!
     
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
+        tableView.dataSource = self
+        tableView.delegate = self
+        
+        tableView.rowHeight = UITableView.automaticDimension
+        tableView.estimatedRowHeight = 140
+        tableView.separatorStyle = .none
 
         styleScreenBackground()
         styleSectionContainer()
         styleSearchBar()
         styleDepartmentDropdown()
+    }
+    func tableView(_ tableView: UITableView, heightForHeaderInSection section: Int) -> CGFloat {
+        return .leastNormalMagnitude
+    }
+
+    func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
+        return .leastNormalMagnitude
     }
 
     override func viewDidLayoutSubviews() {
@@ -100,4 +116,51 @@ class TechnicianListViewController: UIViewController {
         addTechnicianButton.layer.cornerRadius = 12
         addTechnicianButton.layer.masksToBounds = true
     }
-}
+    
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+            return 20   // Test scrolling & reuse
+        }
+
+        func tableView(
+            _ tableView: UITableView,
+            cellForRowAt indexPath: IndexPath
+        ) -> UITableViewCell {
+
+            let cell = tableView.dequeueReusableCell(
+                withIdentifier: "TechnicianCell",
+                for: indexPath
+            ) as! TechnicianTableViewCell
+
+            // 🔹 TEST DATA (intentionally varied)
+            let names = [
+                "Ahmed Darwish",
+                "Sara Mansoor",
+                "Khalid Haddad",
+                "Ahmed Darwish Senior IT Infrastructure & Systems Administrator"
+            ]
+
+            let departments = [
+                "IT Support",
+                "Maintenance",
+                "Facilities",
+                "Network & Systems Operations Department"
+            ]
+
+            let phones = [
+                "+973 3321 8745",
+                "+973 3952 1067",
+                "+973 3664 9821",
+                "+973 3333 3333"
+            ]
+
+            let index = indexPath.row % names.count
+
+            cell.configure(
+                name: names[index],
+                department: departments[index],
+                phone: phones[index]
+            )
+
+            return cell
+        }
+    }
