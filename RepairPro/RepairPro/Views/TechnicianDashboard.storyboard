@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="EON-ym-qbc">
+<document type="com.apple.InterfaceBuilder3.CocoaTouch.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="iOS.CocoaTouch" propertyAccessControl="none" useAutolayout="YES" useTraitCollections="YES" useSafeAreas="YES" colorMatched="YES" initialViewController="a1k-wc-0Xc">
     <device id="retina6_12" orientation="portrait" appearance="light"/>
     <dependencies>
         <plugIn identifier="com.apple.InterfaceBuilder.IBCocoaTouchPlugin" version="23721"/>
@@ -11,10 +11,11 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--Navigation Controller-->
+        <!--Dashboard-->
         <scene sceneID="ASH-RG-qE4">
             <objects>
                 <navigationController id="EON-ym-qbc" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="Dashboard" image="house.fill" catalog="system" id="AST-Ce-9gx"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="G3t-mN-YEf">
                         <rect key="frame" x="0.0" y="118" width="393" height="44"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -275,12 +276,42 @@
                         </connections>
                     </tableView>
                     <navigationItem key="navigationItem" title="Dashboard" largeTitleDisplayMode="always" id="EBt-Fp-N7a">
-                        <barButtonItem key="rightBarButtonItem" title="Item" image="bell.fill" catalog="system" id="Ivn-fq-ZcO"/>
+                        <barButtonItem key="rightBarButtonItem" title="Item" image="bell.fill" catalog="system" id="Ivn-fq-ZcO">
+                            <color key="tintColor" systemColor="labelColor"/>
+                        </barButtonItem>
                     </navigationItem>
                 </tableViewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="AIc-Sh-gnw" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-1440.4580152671756" y="255.63380281690141"/>
+        </scene>
+        <!--Tab Bar Controller-->
+        <scene sceneID="WWi-rX-XgG">
+            <objects>
+                <tabBarController id="a1k-wc-0Xc" sceneMemberID="viewController">
+                    <tabBar key="tabBar" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" id="lMn-4d-mg1">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="49"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                        <color key="backgroundColor" white="0.0" alpha="0.0" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                        <color key="selectedImageTintColor" systemColor="labelColor"/>
+                    </tabBar>
+                    <connections>
+                        <segue destination="EON-ym-qbc" kind="relationship" relationship="viewControllers" id="7kT-0k-1xt"/>
+                    </connections>
+                </tabBarController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="iGN-Cj-KzO" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-3375" y="832"/>
+        </scene>
+        <!--MyTasksVC-->
+        <scene sceneID="A1U-s2-6v1">
+            <objects>
+                <viewControllerPlaceholder storyboardName="MyTasksVC" id="7BW-bI-d9G" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="Tickets" image="doc.text" catalog="system" id="LpY-wE-bIi"/>
+                </viewControllerPlaceholder>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="kaG-Ta-CSQ" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-3280" y="1244"/>
         </scene>
     </scenes>
     <resources>
@@ -288,16 +319,18 @@
         <image name="bell.fill" catalog="system" width="123" height="128"/>
         <image name="building.2" catalog="system" width="120" height="128"/>
         <image name="chart.line.uptrend.xyaxis" catalog="system" width="128" height="102"/>
+        <image name="doc.text" catalog="system" width="115" height="128"/>
+        <image name="house.fill" catalog="system" width="128" height="104"/>
         <image name="list.bullet.clipboard" catalog="system" width="98" height="128"/>
         <image name="shippingbox" catalog="system" width="128" height="123"/>
         <namedColor name="DashLogo">
             <color red="0.10999999940395355" green="0.28200000524520874" blue="0.42399999499320984" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
         <namedColor name="LogoBlue">
-            <color red="0.0" green="0.27843137254901962" blue="0.43529411764705883" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.0" green="0.27799999713897705" blue="0.43500000238418579" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <namedColor name="LogoOrange">
-            <color red="0.99607843137254903" green="0.63529411764705879" blue="0.078431372549019607" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+            <color red="0.99599999189376831" green="0.63499999046325684" blue="0.078000001609325409" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
         </namedColor>
         <systemColor name="labelColor">
             <color white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
