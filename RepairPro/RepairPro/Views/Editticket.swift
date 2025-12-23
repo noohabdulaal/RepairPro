@@ -15,7 +15,8 @@ class Editticket: UIViewController {
         // Do any additional setup after loading the view.
     }
     
-
+    @IBOutlet weak var editticket: UITableView!
+    
     /*
     // MARK: - Navigation
 
