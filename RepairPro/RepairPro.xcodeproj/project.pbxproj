@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		D05084FC2EFAB9C1008AE125 /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = D05084FB2EFAB9C1008AE125 /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9B8267A42ED2FA36006D71E4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +69,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D05084FC2EFAB9C1008AE125 /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +130,7 @@
 			);
 			name = RepairPro;
 			packageProductDependencies = (
+				D05084FB2EFAB9C1008AE125 /* Supabase */,
 			);
 			productName = RepairPro;
 			productReference = 9B82678D2ED2FA32006D71E4 /* RepairPro.app */;
@@ -208,6 +214,9 @@
 			);
 			mainGroup = 9B8267842ED2FA32006D71E4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				D05084D32EFAB714008AE125 /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B82678E2ED2FA32006D71E4 /* Products */;
 			projectDirPath = "";
@@ -563,6 +572,24 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		D05084D32EFAB714008AE125 /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.5.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		D05084FB2EFAB9C1008AE125 /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9B8267852ED2FA32006D71E4 /* Project object */;
 }
