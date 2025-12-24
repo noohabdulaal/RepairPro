@@ -2,8 +2,6 @@
 //  TicketViewList.swift
 //  RepairPro
 //
-//  Created by BP-36-201-17 on 23/12/2025.
-//
 
 import UIKit
 
@@ -17,33 +15,27 @@ class TicketViewList: UIViewController {
     @IBOutlet weak var dueDate: UILabel!
     @IBOutlet weak var ticketDescreption: UILabel!
     
-    // Add a scroll view and stack view to hold multiple tickets
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var stackView: UIStackView!
     
+    // Keep fetched tickets
+    var ticketsArray: [Ticket] = []
+
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        // Hide the original ticketView
         ticketView.isHidden = true
-        
-        // CRITICAL: Remove all storyboard constraints
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
-        // Setup all constraints programmatically
         setupScrollViewAndStackView()
-        
-        // Fetch tickets from Supabase
         fetchTickets()
     }
     
     func setupScrollViewAndStackView() {
-        // Remove any existing constraints
         scrollView.constraints.forEach { scrollView.removeConstraint($0) }
         stackView.constraints.forEach { stackView.removeConstraint($0) }
         
-        // Configure scroll view constraints - pin to all edges of safe area
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor),
@@ -51,19 +43,16 @@ class TicketViewList: UIViewController {
             scrollView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor)
         ])
         
-        // Configure stack view properties
         stackView.axis = .vertical
         stackView.spacing = 16
-        stackView.distribution = .fill
         stackView.alignment = .fill
+        stackView.distribution = .fill
         
-        // Configure stack view constraints
         NSLayoutConstraint.activate([
             stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 16),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
             stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -16),
-            // CRITICAL: This width constraint prevents overlapping
             stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32)
         ])
     }
@@ -77,20 +66,14 @@ class TicketViewList: UIViewController {
                     .execute()
                     .value
                 
-                print("Fetched \(tickets.count) tickets")
+                // Remove pending tickets
+                ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
                 
-                // Create a view for each ticket on the main thread
                 await MainActor.run {
-                    // Clear existing views
                     stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-                    
-                    for ticket in tickets {
-                        createTicketView(for: ticket)
-                    }
+                    ticketsArray.forEach { createTicketView(for: $0) }
                 }
             } catch {
-                print("Error fetching tickets: \(error)")
-                // Optionally show an alert to the user
                 await MainActor.run {
                     showErrorAlert(message: "Failed to load tickets: \(error.localizedDescription)")
                 }
@@ -99,187 +82,147 @@ class TicketViewList: UIViewController {
     }
     
     func createTicketView(for ticket: Ticket) {
-        // Get the status color first so we can use it for both circle and sidebar
         let statusColor = getStatusColor(for: ticket.status)
-        
-        // Main container view
         let containerView = UIView()
         containerView.backgroundColor = .systemGray6
-        containerView.layer.cornerRadius = 12  // Added radius to the card
-        containerView.clipsToBounds = true  // Important for the corner radius to show
-        // Removed border width and color
+        containerView.layer.cornerRadius = 12
+        containerView.clipsToBounds = true
         containerView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.heightAnchor.constraint(equalToConstant: 140).isActive = true
         
-        // Side bar - now uses status color instead of orange
+        // Tap gesture to go to edit screen
+        containerView.tag = ticket.ticket_id
+        let tap = UITapGestureRecognizer(target: self, action: #selector(ticketTapped(_:)))
+        containerView.addGestureRecognizer(tap)
+        containerView.isUserInteractionEnabled = true
+        
+        // Sidebar
         let sideBar = UIView()
-        sideBar.backgroundColor = statusColor  // Changed from .systemOrange to statusColor
+        sideBar.backgroundColor = statusColor
         sideBar.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(sideBar)
         
-        // Ticket ID label (same line)
+        // Ticket ID
         let ticketIDLabel = UILabel()
         ticketIDLabel.text = "Ticket ID: \(ticket.ticket_id)"
         ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         ticketIDLabel.textColor = .label
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(ticketIDLabel)
         
-        // Due date label (same line, right aligned)
+        // Due date
         let dueDateLabel = UILabel()
         dueDateLabel.text = "Due: \(ticket.due)"
-        dueDateLabel.font = .systemFont(ofSize: 14, weight: .regular)
+        dueDateLabel.font = .systemFont(ofSize: 14)
         dueDateLabel.textColor = .label
         dueDateLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(dueDateLabel)
         
-        // Description title
+        // Description
         let descriptionTitle = UILabel()
         descriptionTitle.text = "Description:"
         descriptionTitle.font = .systemFont(ofSize: 14, weight: .bold)
-        descriptionTitle.textColor = .label
         descriptionTitle.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(descriptionTitle)
         
-        // Description text
         let descriptionText = UILabel()
         descriptionText.text = ticket.description
-        descriptionText.font = .systemFont(ofSize: 13, weight: .regular)
-        descriptionText.textColor = .label
+        descriptionText.font = .systemFont(ofSize: 13)
         descriptionText.numberOfLines = 2
-        descriptionText.lineBreakMode = .byTruncatingTail
         descriptionText.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(descriptionText)
         
-        // Status icon and label (same line with icon)
-        let statusIcon = UIImageView()
-        statusIcon.image = UIImage(systemName: "scope")
-        statusIcon.tintColor = .label
-        statusIcon.contentMode = .scaleAspectFit
-        statusIcon.translatesAutoresizingMaskIntoConstraints = false
-        
+        // Status label
         let statusLabel = UILabel()
         statusLabel.text = "Status: \(ticket.status)"
-        statusLabel.font = .systemFont(ofSize: 13, weight: .regular)
-        statusLabel.textColor = .label
+        statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(statusLabel)
         
-        // Campus icon and label (same line with icon)
-        let campusIcon = UIImageView()
-        campusIcon.image = UIImage(systemName: "location")
-        campusIcon.tintColor = .label
-        campusIcon.contentMode = .scaleAspectFit
-        campusIcon.translatesAutoresizingMaskIntoConstraints = false
-        
+        // Campus label
         let campusLabel = UILabel()
         campusLabel.text = "Campus \(ticket.campus)"
-        campusLabel.font = .systemFont(ofSize: 13, weight: .regular)
-        campusLabel.textColor = .label
+        campusLabel.font = .systemFont(ofSize: 13)
         campusLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(campusLabel)
         
-        // Status circle icon (right side, under due date)
+        // Status circle with tick
         let statusCircle = UIView()
-        statusCircle.backgroundColor = statusColor  // Use the pre-calculated color
+        statusCircle.backgroundColor = statusColor
         statusCircle.layer.cornerRadius = 25
         statusCircle.translatesAutoresizingMaskIntoConstraints = false
-        
-        // Exclamation mark in circle
-        let exclamationLabel = UILabel()
-        exclamationLabel.text = "!"
-        exclamationLabel.font = .systemFont(ofSize: 30, weight: .bold)
-        exclamationLabel.textColor = .white
-        exclamationLabel.textAlignment = .center
-        exclamationLabel.translatesAutoresizingMaskIntoConstraints = false
-        statusCircle.addSubview(exclamationLabel)
-        
-        // Add all subviews
-        containerView.addSubview(sideBar)
-        containerView.addSubview(ticketIDLabel)
-        containerView.addSubview(dueDateLabel)
-        containerView.addSubview(descriptionTitle)
-        containerView.addSubview(descriptionText)
-        containerView.addSubview(statusIcon)
-        containerView.addSubview(statusLabel)
-        containerView.addSubview(campusIcon)
-        containerView.addSubview(campusLabel)
         containerView.addSubview(statusCircle)
         
-        // Layout constraints
+        let tickLabel = UILabel()
+        tickLabel.text = "✓" // changed from "!"
+        tickLabel.font = .boldSystemFont(ofSize: 30)
+        tickLabel.textColor = .white
+        tickLabel.textAlignment = .center
+        tickLabel.translatesAutoresizingMaskIntoConstraints = false
+        statusCircle.addSubview(tickLabel)
+        
+        // Constraints
         NSLayoutConstraint.activate([
-            // Container fixed height
-            containerView.heightAnchor.constraint(equalToConstant: 140),
-            
-            // Orange side bar (thicker)
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             sideBar.topAnchor.constraint(equalTo: containerView.topAnchor),
             sideBar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
             sideBar.widthAnchor.constraint(equalToConstant: 20),
             
-            // Ticket ID label (left side)
             ticketIDLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
             ticketIDLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             
-            // Due date label (right side, same line as ticket ID)
             dueDateLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             dueDateLabel.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor),
             
-            // Description title
             descriptionTitle.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
             descriptionTitle.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 8),
             
-            // Description text
             descriptionText.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
             descriptionText.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -12),
             descriptionText.topAnchor.constraint(equalTo: descriptionTitle.bottomAnchor, constant: 2),
             
-            // Status icon
-            statusIcon.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            statusIcon.topAnchor.constraint(equalTo: descriptionText.bottomAnchor, constant: 8),
-            statusIcon.widthAnchor.constraint(equalToConstant: 16),
-            statusIcon.heightAnchor.constraint(equalToConstant: 16),
+            statusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
+            statusLabel.topAnchor.constraint(equalTo: descriptionText.bottomAnchor, constant: 6),
             
-            // Status label
-            statusLabel.leadingAnchor.constraint(equalTo: statusIcon.trailingAnchor, constant: 6),
-            statusLabel.centerYAnchor.constraint(equalTo: statusIcon.centerYAnchor),
+            campusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
+            campusLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4),
             
-            // Campus icon
-            campusIcon.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            campusIcon.topAnchor.constraint(equalTo: statusIcon.bottomAnchor, constant: 6),
-            campusIcon.widthAnchor.constraint(equalToConstant: 16),
-            campusIcon.heightAnchor.constraint(equalToConstant: 16),
-            campusIcon.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor, constant: -12),
-            
-            // Campus label
-            campusLabel.leadingAnchor.constraint(equalTo: campusIcon.trailingAnchor, constant: 6),
-            campusLabel.centerYAnchor.constraint(equalTo: campusIcon.centerYAnchor),
-            
-            // Status circle (under due date, right side)
             statusCircle.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             statusCircle.topAnchor.constraint(equalTo: dueDateLabel.bottomAnchor, constant: 12),
             statusCircle.widthAnchor.constraint(equalToConstant: 50),
             statusCircle.heightAnchor.constraint(equalToConstant: 50),
             
-            // Exclamation label inside circle
-            exclamationLabel.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
-            exclamationLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor)
+            tickLabel.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
+            tickLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor)
         ])
         
-        // Add to stack view
         stackView.addArrangedSubview(containerView)
-        
-        // Make sure container view width matches stack view width
         NSLayoutConstraint.activate([
             containerView.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
             containerView.trailingAnchor.constraint(equalTo: stackView.trailingAnchor)
         ])
-        
-        print("Created ticket view for ticket #\(ticket.ticket_id)")
+    }
+    
+    @objc func ticketTapped(_ sender: UITapGestureRecognizer) {
+        guard let view = sender.view,
+              let ticket = ticketsArray.first(where: { $0.ticket_id == view.tag }) else { return }
+
+        let storyboard = UIStoryboard(name: "Hatem", bundle: nil)
+        let editVC = storyboard.instantiateViewController(withIdentifier: "Edittickets") as! Edittickets
+        editVC.ticket = ticket
+        navigationController?.pushViewController(editVC, animated: true)
     }
     
     func getStatusColor(for status: String) -> UIColor {
         switch status.lowercased() {
-        case "pending":
-            return .systemYellow
-        case "in progress", "assigned":
-            return .systemGreen
-        case "complete", "completed":
-            return .systemBlue
+        case "completed", "complete":
+            return UIColor(red: 0/255, green: 72/255, blue: 111/255, alpha: 1) // #00486F
+        case "assigned":
+            return UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1) // #FEA214
+        case "in progress":
+            return UIColor.systemGray // still in progress
         default:
-            return .systemGray
+            return UIColor.systemGray // fallback
         }
     }
     
@@ -290,11 +233,13 @@ class TicketViewList: UIViewController {
     }
 }
 
-// Ticket model matching your database structure
+// MARK: - Ticket model (single source of truth)
 struct Ticket: Codable {
     let ticket_id: Int
     let due: String
     let description: String
-    let status: String
+    var status: String // mutable for priority updates
     let campus: String
 }
+
+
