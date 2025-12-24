@@ -359,6 +359,7 @@
                         <outlet property="saveButton" destination="2bb-hc-p4z" id="ZBi-ES-bwh"/>
                         <outlet property="statusLabel" destination="TES-xN-gW1" id="Ypc-Hk-a9S"/>
                         <outlet property="ticketIDLabel" destination="Sdm-mC-lxs" id="FvO-wI-vgc"/>
+                        <outlet property="ticketImageView" destination="ee8-R0-3Ci" id="3kh-MI-TOC"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="rht-dG-dy5" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>

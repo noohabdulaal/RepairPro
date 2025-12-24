@@ -83,6 +83,7 @@ class TicketViewList: UIViewController {
     
     func createTicketView(for ticket: Ticket) {
         let statusColor = getStatusColor(for: ticket.status)
+        
         let containerView = UIView()
         containerView.backgroundColor = .systemGray6
         containerView.layer.cornerRadius = 12
@@ -90,7 +91,6 @@ class TicketViewList: UIViewController {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         containerView.heightAnchor.constraint(equalToConstant: 140).isActive = true
         
-        // Tap gesture to go to edit screen
         containerView.tag = ticket.ticket_id
         let tap = UITapGestureRecognizer(target: self, action: #selector(ticketTapped(_:)))
         containerView.addGestureRecognizer(tap)
@@ -106,7 +106,6 @@ class TicketViewList: UIViewController {
         let ticketIDLabel = UILabel()
         ticketIDLabel.text = "Ticket ID: \(ticket.ticket_id)"
         ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        ticketIDLabel.textColor = .label
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketIDLabel)
         
@@ -114,7 +113,6 @@ class TicketViewList: UIViewController {
         let dueDateLabel = UILabel()
         dueDateLabel.text = "Due: \(ticket.due)"
         dueDateLabel.font = .systemFont(ofSize: 14)
-        dueDateLabel.textColor = .label
         dueDateLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(dueDateLabel)
         
@@ -154,14 +152,23 @@ class TicketViewList: UIViewController {
         containerView.addSubview(statusCircle)
         
         let tickLabel = UILabel()
-        tickLabel.text = "✓" // changed from "!"
+        tickLabel.text = "✓"
         tickLabel.font = .boldSystemFont(ofSize: 30)
         tickLabel.textColor = .white
-        tickLabel.textAlignment = .center
         tickLabel.translatesAutoresizingMaskIntoConstraints = false
         statusCircle.addSubview(tickLabel)
         
-        // Constraints
+        // Ticket Image
+        let ticketImageView = UIImageView()
+        ticketImageView.contentMode = .scaleAspectFill
+        ticketImageView.clipsToBounds = true
+        ticketImageView.layer.cornerRadius = 8
+        ticketImageView.backgroundColor = .systemGray4
+        ticketImageView.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(ticketImageView)
+        
+        loadImage(from: ticket.image_url, into: ticketImageView)
+        
         NSLayoutConstraint.activate([
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             sideBar.topAnchor.constraint(equalTo: containerView.topAnchor),
@@ -178,7 +185,7 @@ class TicketViewList: UIViewController {
             descriptionTitle.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 8),
             
             descriptionText.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            descriptionText.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -12),
+            descriptionText.trailingAnchor.constraint(equalTo: ticketImageView.leadingAnchor, constant: -12),
             descriptionText.topAnchor.constraint(equalTo: descriptionTitle.bottomAnchor, constant: 2),
             
             statusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
@@ -193,14 +200,15 @@ class TicketViewList: UIViewController {
             statusCircle.heightAnchor.constraint(equalToConstant: 50),
             
             tickLabel.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
-            tickLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor)
+            tickLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
+            
+            ticketImageView.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -12),
+            ticketImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
+            ticketImageView.widthAnchor.constraint(equalToConstant: 60),
+            ticketImageView.heightAnchor.constraint(equalToConstant: 60)
         ])
         
         stackView.addArrangedSubview(containerView)
-        NSLayoutConstraint.activate([
-            containerView.leadingAnchor.constraint(equalTo: stackView.leadingAnchor),
-            containerView.trailingAnchor.constraint(equalTo: stackView.trailingAnchor)
-        ])
     }
     
     @objc func ticketTapped(_ sender: UITapGestureRecognizer) {
@@ -216,14 +224,22 @@ class TicketViewList: UIViewController {
     func getStatusColor(for status: String) -> UIColor {
         switch status.lowercased() {
         case "completed", "complete":
-            return UIColor(red: 0/255, green: 72/255, blue: 111/255, alpha: 1) // #00486F
+            return UIColor(red: 0/255, green: 72/255, blue: 111/255, alpha: 1)
         case "assigned":
-            return UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1) // #FEA214
-        case "in progress":
-            return UIColor.systemGray // still in progress
+            return UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1)
         default:
-            return UIColor.systemGray // fallback
+            return .systemGray
         }
+    }
+    
+    func loadImage(from urlString: String?, into imageView: UIImageView) {
+        guard let urlString = urlString, let url = URL(string: urlString) else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                imageView.image = image
+            }
+        }.resume()
     }
     
     func showErrorAlert(message: String) {
@@ -233,13 +249,13 @@ class TicketViewList: UIViewController {
     }
 }
 
-// MARK: - Ticket model (single source of truth)
+// MARK: - Ticket model
 struct Ticket: Codable {
     let ticket_id: Int
     let due: String
     let description: String
-    var status: String // mutable for priority updates
+    var status: String
     let campus: String
+    let image_url: String?
 }
-
 

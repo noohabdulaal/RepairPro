@@ -16,7 +16,7 @@ class Edittickets: UIViewController {
     @IBOutlet weak var statusLabel: UITextField!
     @IBOutlet weak var campusLabel: UITextField!
     @IBOutlet weak var dueDateLabel: UITextField!
-    @IBOutlet weak var subjectLabel: UITextField!      // <-- NEW
+    @IBOutlet weak var ticketImageView: UIImageView!
 
     // MARK: - Priority Segmented Control
     @IBOutlet weak var prioritySegment: UISegmentedControl!
@@ -29,6 +29,7 @@ class Edittickets: UIViewController {
         view.backgroundColor = .white
         displayTicketDetails()
         setupPrioritySegment()
+        loadTicketImage() // ✅ IMAGE FEATURE
     }
     
     // MARK: - Display ticket info
@@ -39,8 +40,24 @@ class Edittickets: UIViewController {
         statusLabel.text = ticket.status
         campusLabel.text = ticket.campus
         dueDateLabel.text = ticket.due
-                     // <-- NEW
+    }
+    
+    // MARK: - Load ticket image (NEW)
+    func loadTicketImage() {
+        guard let urlString = ticket?.image_url,
+              let url = URL(string: urlString) else {
+            ticketImageView.image = UIImage(systemName: "photo")
+            ticketImageView.tintColor = .systemGray
+            return
+        }
 
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data,
+                  let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                self.ticketImageView.image = image
+            }
+        }.resume()
     }
     
     // MARK: - Setup priority segmented control
@@ -74,38 +91,20 @@ class Edittickets: UIViewController {
         }
         
         statusLabel.text = ticket.status
-        self.ticket = ticket  // update the ticket property
+        self.ticket = ticket
     }
     
     // MARK: - Save Button Action
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         guard let ticket = ticket else { return }
         
-        // TODO: Add your database update logic here
-        /*
-        Task {
-            do {
-                try await SupabaseClientManager.shared.client
-                    .from("tickets")
-                    .update(values: ["status": ticket.status])
-                    .eq(column: "ticket_id", value: ticket.ticket_id)
-                    .execute()
-            } catch {
-                showAlert(title: "Error", message: "Failed to update ticket: \(error.localizedDescription)")
-                return
-            }
-        }
-        */
-        
         print("Ticket #\(ticket.ticket_id) saved with status: \(ticket.status)")
         
-        // Show small confirmation message
         let alert = UIAlertController(title: nil,
                                       message: "Ticket has been assigned",
                                       preferredStyle: .alert)
         present(alert, animated: true)
         
-        // Dismiss alert automatically after 1.2 seconds and go back
         DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
             alert.dismiss(animated: true) {
                 self.navigationController?.popViewController(animated: true)
