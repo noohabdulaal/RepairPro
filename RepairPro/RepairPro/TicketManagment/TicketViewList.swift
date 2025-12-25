@@ -18,8 +18,8 @@ class TicketViewList: UIViewController {
     @IBOutlet weak var scrollView: UIScrollView!
     @IBOutlet weak var stackView: UIStackView!
     
-    // Keep fetched tickets
     var ticketsArray: [Ticket] = []
+    var filteredTickets: [Ticket] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,6 +29,7 @@ class TicketViewList: UIViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
         setupScrollViewAndStackView()
+        setupFilterButton()
         fetchTickets()
     }
     
@@ -57,6 +58,25 @@ class TicketViewList: UIViewController {
         ])
     }
     
+    func setupFilterButton() {
+        let filterButton = UIBarButtonItem(
+            image: UIImage(systemName: "line.horizontal.3.decrease.circle"),
+            style: .plain,
+            target: self,
+            action: #selector(filterButtonTapped)
+        )
+        navigationItem.rightBarButtonItem = filterButton
+    }
+    
+    @objc func filterButtonTapped() {
+        let filterVC = FilterModalViewController()
+        filterVC.modalPresentationStyle = .overFullScreen
+        filterVC.applyFilters = { [weak self] status, priority, deadline in
+            self?.applyFilters(status: status, priority: priority, deadline: deadline)
+        }
+        present(filterVC, animated: true)
+    }
+    
     func fetchTickets() {
         Task {
             do {
@@ -68,10 +88,10 @@ class TicketViewList: UIViewController {
                 
                 // Remove pending tickets
                 ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
+                filteredTickets = ticketsArray
                 
                 await MainActor.run {
-                    stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-                    ticketsArray.forEach { createTicketView(for: $0) }
+                    displayTickets(filteredTickets)
                 }
             } catch {
                 await MainActor.run {
@@ -79,6 +99,44 @@ class TicketViewList: UIViewController {
                 }
             }
         }
+    }
+    
+    func displayTickets(_ tickets: [Ticket]) {
+        stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
+        tickets.forEach { createTicketView(for: $0) }
+    }
+    
+    func applyFilters(status: String?, priority: String?, deadline: String?) {
+        filteredTickets = ticketsArray
+        
+        // Filter by status
+        if let status = status {
+            filteredTickets = filteredTickets.filter { $0.status.lowercased() == status.lowercased() }
+        }
+        
+        // Filter by priority (custom mapping)
+        if let priority = priority {
+            switch priority.lowercased() {
+            case "high":
+                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "in progress" }
+            case "medium":
+                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "assigned" }
+            case "low":
+                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "complete" }
+            default: break
+            }
+        }
+        
+        // Filter by deadline
+        if let deadline = deadline {
+            filteredTickets.sort { first, second in
+                guard let date1 = ISO8601DateFormatter().date(from: first.due),
+                      let date2 = ISO8601DateFormatter().date(from: second.due) else { return false }
+                return deadline.lowercased() == "nearest" ? date2 < date1 : date1 < date2
+            }
+        }
+        
+        displayTickets(filteredTickets)
     }
     
     func createTicketView(for ticket: Ticket) {
@@ -144,7 +202,7 @@ class TicketViewList: UIViewController {
         campusLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(campusLabel)
         
-        // Status circle with tick
+        // Status circle
         let statusCircle = UIView()
         statusCircle.backgroundColor = statusColor
         statusCircle.layer.cornerRadius = 25
@@ -167,7 +225,7 @@ class TicketViewList: UIViewController {
         ticketImageView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketImageView)
         
-        loadImage(from: ticket.image_url, into: ticketImageView)
+        loadImageWithDefault(from: ticket.image_url, into: ticketImageView)
         
         NSLayoutConstraint.activate([
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
@@ -223,17 +281,27 @@ class TicketViewList: UIViewController {
     
     func getStatusColor(for status: String) -> UIColor {
         switch status.lowercased() {
-        case "completed", "complete":
+        case "complete":
             return UIColor(red: 0/255, green: 72/255, blue: 111/255, alpha: 1)
         case "assigned":
             return UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1)
+        case "in progress":
+            return UIColor.systemGray
         default:
             return .systemGray
         }
     }
     
-    func loadImage(from urlString: String?, into imageView: UIImageView) {
-        guard let urlString = urlString, let url = URL(string: urlString) else { return }
+    func loadImageWithDefault(from urlString: String?, into imageView: UIImageView) {
+        let defaultImages = [
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
+        ]
+        
+        let imageURL = urlString ?? defaultImages.randomElement()!
+        guard let url = URL(string: imageURL) else { return }
+        
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let image = UIImage(data: data) else { return }
             DispatchQueue.main.async {
@@ -257,5 +325,6 @@ struct Ticket: Codable {
     var status: String
     let campus: String
     let image_url: String?
+    let priority: String?
 }
 

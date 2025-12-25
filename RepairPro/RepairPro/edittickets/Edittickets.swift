@@ -42,10 +42,23 @@ class Edittickets: UIViewController {
         dueDateLabel.text = ticket.due
     }
     
-    // MARK: - Load ticket image (NEW)
+    // MARK: - Load ticket image (updated to random default if none)
     func loadTicketImage() {
-        guard let urlString = ticket?.image_url,
-              let url = URL(string: urlString) else {
+        let defaultImages = [
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
+        ]
+        
+        let finalURLString: String
+        
+        if let url = ticket?.image_url, !url.isEmpty {
+            finalURLString = url
+        } else {
+            finalURLString = defaultImages.randomElement()!
+        }
+        
+        guard let url = URL(string: finalURLString) else {
             ticketImageView.image = UIImage(systemName: "photo")
             ticketImageView.tintColor = .systemGray
             return
