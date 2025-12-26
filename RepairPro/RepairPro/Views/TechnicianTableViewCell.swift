@@ -9,21 +9,25 @@ class TechnicianTableViewCell: UITableViewCell {
     @IBOutlet weak var phoneLabel: UILabel!
     @IBOutlet weak var editButton: UIButton!
     @IBOutlet weak var deleteButton: UIButton!
+    
+    var onEditTapped: (() -> Void)?
+    var onDeleteTapped: (() -> Void)?
 
     // MARK: - Lifecycle
     override func awakeFromNib() {
         super.awakeFromNib()
 
-        selectionStyle = .none   // No gray highlight
+        selectionStyle = .none
+        backgroundColor = .clear
+        contentView.backgroundColor = .clear
+
         setupCardStyle()
-        setupLabels()
         setupButtons()
     }
 
     override func layoutSubviews() {
         super.layoutSubviews()
 
-        // Keep shadow correct for dynamic height cells
         cardContainerView.layer.shadowPath = UIBezierPath(
             roundedRect: cardContainerView.bounds,
             cornerRadius: 16
@@ -32,14 +36,12 @@ class TechnicianTableViewCell: UITableViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-
-        // Reset reused content
         nameLabel.text = nil
         departmentLabel.text = nil
         phoneLabel.text = nil
     }
 
-    // MARK: - Public Configuration
+    // MARK: - Configuration
     func configure(name: String, department: String, phone: String) {
         nameLabel.text = name
         departmentLabel.text = department
@@ -49,42 +51,43 @@ class TechnicianTableViewCell: UITableViewCell {
     // MARK: - Styling
 
     private func setupCardStyle() {
-        cardContainerView.backgroundColor = .white
+        // 🔹 Slightly darker than background (Figma match)
+        cardContainerView.backgroundColor = UIColor(
+            red: 250/255,
+            green: 250/255,
+            blue: 252/255,
+            alpha: 1
+        )
+
         cardContainerView.layer.cornerRadius = 16
         cardContainerView.layer.masksToBounds = false
 
-        // Figma-style bottom shadow
+        // 🔹 Subtle depth shadow (NOT floating)
         cardContainerView.layer.shadowColor = UIColor.black.cgColor
-        cardContainerView.layer.shadowOpacity = 0.18
-        cardContainerView.layer.shadowRadius = 12
-        cardContainerView.layer.shadowOffset = CGSize(width: 0, height: 8)
-    }
+        cardContainerView.layer.shadowOpacity = 0.08
+        cardContainerView.layer.shadowRadius = 6
+        cardContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
 
-    private func setupLabels() {
-        nameLabel.numberOfLines = 0
-        departmentLabel.numberOfLines = 0
-        phoneLabel.numberOfLines = 1
-
-        nameLabel.lineBreakMode = .byWordWrapping
-        departmentLabel.lineBreakMode = .byWordWrapping
+        cardContainerView.layer.shouldRasterize = true
+        cardContainerView.layer.rasterizationScale = UIScreen.main.scale
     }
 
     private func setupButtons() {
         editButton.configurationUpdateHandler = { button in
-            button.alpha = button.isHighlighted ? 0.6 : 1.0
+            button.alpha = button.isHighlighted ? 0.6 : 1
         }
 
         deleteButton.configurationUpdateHandler = { button in
-            button.alpha = button.isHighlighted ? 0.6 : 1.0
+            button.alpha = button.isHighlighted ? 0.6 : 1
         }
     }
 
-    // MARK: - Button Actions (temporary debug)
+    // MARK: - Actions
     @IBAction func editButtonTapped(_ sender: UIButton) {
-        print("Edit tapped")
+        onEditTapped?()
     }
 
     @IBAction func deleteButtonTapped(_ sender: UIButton) {
-        print("Delete tapped")
+        onDeleteTapped?()
     }
 }
