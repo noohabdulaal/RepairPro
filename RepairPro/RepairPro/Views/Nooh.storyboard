@@ -49,50 +49,16 @@
         <!--Dashboard-->
         <scene sceneID="ZCl-DP-rSq">
             <objects>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="5xa-hW-fDt" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
                 <viewController id="gzt-M8-nRw" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="m0m-Iw-5sF">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
-                        <subviews>
-                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="RDi-yU-87g">
-                                <rect key="frame" x="0.0" y="103" width="393" height="666"/>
-                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                <subviews>
-                                    <view contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ylL-sR-fXY">
-                                        <rect key="frame" x="0.0" y="0.0" width="393" height="666"/>
-                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
-                                        <subviews>
-                                            <stackView opaque="NO" contentMode="scaleToFill" ambiguous="YES" axis="vertical" distribution="fillEqually" spacing="12" translatesAutoresizingMaskIntoConstraints="NO" id="33z-gB-54J">
-                                                <rect key="frame" x="159" y="0.0" width="75" height="90"/>
-                                                <subviews>
-                                                    <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="Nop-UR-nMZ">
-                                                        <rect key="frame" x="0.0" y="0.0" width="75" height="90"/>
-                                                        <constraints>
-                                                            <constraint firstAttribute="height" constant="90" id="Tt0-Ym-jfc"/>
-                                                        </constraints>
-                                                        <state key="normal" title="Button"/>
-                                                        <buttonConfiguration key="configuration" style="plain" title="Button"/>
-                                                    </button>
-                                                </subviews>
-                                                <constraints>
-                                                    <constraint firstAttribute="trailing" secondItem="Nop-UR-nMZ" secondAttribute="trailing" id="SaD-bH-mTs"/>
-                                                    <constraint firstItem="Nop-UR-nMZ" firstAttribute="leading" secondItem="33z-gB-54J" secondAttribute="leading" id="rOH-nr-Jgu"/>
-                                                </constraints>
-                                            </stackView>
-                                        </subviews>
-                                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
-                                    </view>
-                                </subviews>
-                                <viewLayoutGuide key="contentLayoutGuide" id="e4u-Rk-g2x"/>
-                                <viewLayoutGuide key="frameLayoutGuide" id="uWb-FJ-b9c"/>
-                            </scrollView>
-                        </subviews>
                         <viewLayoutGuide key="safeArea" id="4ro-yS-F3v"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
                     <navigationItem key="navigationItem" title="Dashboard" id="7EF-ry-NcN"/>
                 </viewController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="5xa-hW-fDt" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="2466.4122137404579" y="-1411.267605633803"/>
         </scene>
@@ -138,6 +104,7 @@
         <!--Dashboard-->
         <scene sceneID="pkH-V4-FUA">
             <objects>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="3Jc-iW-gHK" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="uDl-Qa-QYd" sceneMemberID="viewController">
                     <tabBarItem key="tabBarItem" title="Dashboard" image="house" catalog="system" id="lAJ-wR-H3o"/>
                     <toolbarItems/>
@@ -151,7 +118,6 @@
                         <segue destination="gzt-M8-nRw" kind="relationship" relationship="rootViewController" id="12I-cr-vcy"/>
                     </connections>
                 </navigationController>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="3Jc-iW-gHK" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="1539.6946564885495" y="-1411.267605633803"/>
         </scene>
