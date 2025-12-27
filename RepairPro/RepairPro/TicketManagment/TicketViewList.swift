@@ -29,7 +29,7 @@ class TicketViewList: UIViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
         setupScrollViewAndStackView()
-        setupFilterButton()
+        setupFilterButton() // ✅ filter icon button
         fetchTickets()
     }
     
@@ -59,12 +59,14 @@ class TicketViewList: UIViewController {
     }
     
     func setupFilterButton() {
+        // Filter icon button in navigation bar
         let filterButton = UIBarButtonItem(
-            image: UIImage(systemName: "line.horizontal.3.decrease.circle"),
+            image: UIImage(systemName: "slider.horizontal.3"), // icon
             style: .plain,
             target: self,
             action: #selector(filterButtonTapped)
         )
+        filterButton.tintColor = .systemBlue
         navigationItem.rightBarButtonItem = filterButton
     }
     
@@ -114,7 +116,7 @@ class TicketViewList: UIViewController {
             filteredTickets = filteredTickets.filter { $0.status.lowercased() == status.lowercased() }
         }
         
-        // Filter by priority (custom mapping)
+        // Filter by priority
         if let priority = priority {
             switch priority.lowercased() {
             case "high":
