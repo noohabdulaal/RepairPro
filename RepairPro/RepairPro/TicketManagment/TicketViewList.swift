@@ -1,9 +1,6 @@
-//
-//  TicketViewList.swift
-//  RepairPro
-//
-
 import UIKit
+import FirebaseFirestore
+import Cloudinary
 
 class TicketViewList: UIViewController {
 
@@ -20,6 +17,16 @@ class TicketViewList: UIViewController {
     
     var ticketsArray: [Ticket] = []
     var filteredTickets: [Ticket] = []
+    
+    // MARK: - Filter State Properties (New)
+    var currentStatusFilter: String? = nil
+    var currentPriorityFilter: String? = nil
+    var currentDeadlineFilter: String? = nil
+    
+    let db = Firestore.firestore()
+    
+    // Cloudinary configuration
+    let cloudinary = CLDCloudinary(configuration: CLDConfiguration(cloudName: "dtthzideh"))
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -29,10 +36,12 @@ class TicketViewList: UIViewController {
         stackView.translatesAutoresizingMaskIntoConstraints = false
         
         setupScrollViewAndStackView()
-        setupFilterButton() // ✅ filter icon button
+        setupFilterButton()
+        // Start the real-time listener
         fetchTickets()
     }
     
+    // MARK: - UI Setup (No changes)
     func setupScrollViewAndStackView() {
         scrollView.constraints.forEach { scrollView.removeConstraint($0) }
         stackView.constraints.forEach { stackView.removeConstraint($0) }
@@ -59,9 +68,8 @@ class TicketViewList: UIViewController {
     }
     
     func setupFilterButton() {
-        // Filter icon button in navigation bar
         let filterButton = UIBarButtonItem(
-            image: UIImage(systemName: "slider.horizontal.3"), // icon
+            image: UIImage(systemName: "slider.horizontal.3"),
             style: .plain,
             target: self,
             action: #selector(filterButtonTapped)
@@ -79,45 +87,85 @@ class TicketViewList: UIViewController {
         present(filterVC, animated: true)
     }
     
+    // MARK: - Fetch Tickets from Firestore (Real-Time with Debugging)
     func fetchTickets() {
-        Task {
-            do {
-                let tickets: [Ticket] = try await SupabaseClientManager.shared.client
-                    .from("tickets")
-                    .select()
-                    .execute()
-                    .value
+        // Use addSnapshotListener for real-time updates
+        db.collection("Tickets").addSnapshotListener { [weak self] snapshot, error in
+            guard let self = self else { return }
+
+            if let error = error {
+                print("❌ FIREBASE ERROR: Error listening for tickets: \(error.localizedDescription)")
+                self.showErrorAlert(message: "Failed to connect to ticket updates.")
+                return
+            }
+            
+            guard let snapshot = snapshot else {
+                print("❌ SNAPSHOT ERROR: No snapshot data received.")
+                return
+            }
+            
+            print("✅ Received \(snapshot.documents.count) documents from Firestore.")
+            
+            var tickets: [Ticket] = []
+            
+            for doc in snapshot.documents {
+                // Print raw data to check for mismatch against Ticket struct
+                print("--- Document Data for \(doc.documentID) ---")
+                print(doc.data())
+                print("---------------------------------------")
                 
-                // Remove pending tickets
-                ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
-                filteredTickets = ticketsArray
+                do {
+                    // Attempt to decode the document data
+                    let ticket = try doc.data(as: Ticket.self)
+                    tickets.append(ticket)
+                    print("✅ Successfully decoded ticket ID: \(ticket.ticket_id)")
+                } catch {
+                    // IMPORTANT: This error is why your tickets aren't appearing!
+                    print("❌ DECODING ERROR: Failed to decode ticket for document \(doc.documentID):")
+                    print(error)
+                }
+            }
+            
+            DispatchQueue.main.async {
+                // Update the master array, filtering out "pending" as before
+                self.ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
                 
-                await MainActor.run {
-                    displayTickets(filteredTickets)
-                }
-            } catch {
-                await MainActor.run {
-                    showErrorAlert(message: "Failed to load tickets: \(error.localizedDescription)")
-                }
+                // Re-apply current filters to the new, incoming data
+                self.applyCurrentFilters()
+                print("✅ Final ticketsArray count displayed: \(self.ticketsArray.count)")
             }
         }
     }
     
+    // MARK: - Display & Filter Tickets
     func displayTickets(_ tickets: [Ticket]) {
+        // Remove all old views before creating new ones
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         tickets.forEach { createTicketView(for: $0) }
     }
     
+    // Function to save filter state and run logic
     func applyFilters(status: String?, priority: String?, deadline: String?) {
-        filteredTickets = ticketsArray
+        // Save the current filter choices
+        currentStatusFilter = status
+        currentPriorityFilter = priority
+        currentDeadlineFilter = deadline
+
+        // Run the filtering logic
+        applyCurrentFilters()
+    }
+
+    // Function containing the actual filtering logic
+    func applyCurrentFilters() {
+        filteredTickets = ticketsArray // Start with all non-pending tickets
         
-        // Filter by status
-        if let status = status {
+        // 1. Filter by Status
+        if let status = currentStatusFilter {
             filteredTickets = filteredTickets.filter { $0.status.lowercased() == status.lowercased() }
         }
         
-        // Filter by priority
-        if let priority = priority {
+        // 2. Filter by Priority
+        if let priority = currentPriorityFilter {
             switch priority.lowercased() {
             case "high":
                 filteredTickets = filteredTickets.filter { $0.status.lowercased() == "in progress" }
@@ -129,18 +177,21 @@ class TicketViewList: UIViewController {
             }
         }
         
-        // Filter by deadline
-        if let deadline = deadline {
+        // 3. Sort by Deadline
+        if let deadline = currentDeadlineFilter {
             filteredTickets.sort { first, second in
                 guard let date1 = ISO8601DateFormatter().date(from: first.due),
                       let date2 = ISO8601DateFormatter().date(from: second.due) else { return false }
-                return deadline.lowercased() == "nearest" ? date2 < date1 : date1 < date2
+                
+                // Sorting for "nearest" (earlier date first)
+                return deadline.lowercased() == "nearest" ? date1 < date2 : date2 < date1
             }
         }
         
         displayTickets(filteredTickets)
     }
-    
+
+    // MARK: - Create Ticket View (No functional changes)
     func createTicketView(for ticket: Ticket) {
         let statusColor = getStatusColor(for: ticket.status)
         
@@ -227,7 +278,7 @@ class TicketViewList: UIViewController {
         ticketImageView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketImageView)
         
-        loadImageWithDefault(from: ticket.image_url, into: ticketImageView)
+        loadImageFromCloudinary(publicIDOrURL: ticket.image_url, into: ticketImageView)
         
         NSLayoutConstraint.activate([
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
@@ -245,7 +296,7 @@ class TicketViewList: UIViewController {
             descriptionTitle.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 8),
             
             descriptionText.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            descriptionText.trailingAnchor.constraint(equalTo: ticketImageView.leadingAnchor, constant: -12),
+            descriptionText.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -160), // Adjusted constraint
             descriptionText.topAnchor.constraint(equalTo: descriptionTitle.bottomAnchor, constant: 2),
             
             statusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
@@ -263,7 +314,7 @@ class TicketViewList: UIViewController {
             tickLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
             
             ticketImageView.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -12),
-            ticketImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
+            ticketImageView.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
             ticketImageView.widthAnchor.constraint(equalToConstant: 60),
             ticketImageView.heightAnchor.constraint(equalToConstant: 60)
         ])
@@ -281,6 +332,7 @@ class TicketViewList: UIViewController {
         navigationController?.pushViewController(editVC, animated: true)
     }
     
+    // MARK: - Helper Functions (No functional changes)
     func getStatusColor(for status: String) -> UIColor {
         switch status.lowercased() {
         case "complete":
@@ -294,16 +346,27 @@ class TicketViewList: UIViewController {
         }
     }
     
-    func loadImageWithDefault(from urlString: String?, into imageView: UIImageView) {
-        let defaultImages = [
-            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
-            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
-            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
-        ]
+    // MARK: - Cloudinary Image Loader (No functional changes)
+    func loadImageFromCloudinary(publicIDOrURL: String?, into imageView: UIImageView) {
+        let defaultImageURL = "https://res.cloudinary.com/dtthzideh/image/upload/v1766927687/Copilot_20251225_112235_zuxqkf.png"
+        guard let path = publicIDOrURL, !path.isEmpty else {
+            loadRemoteImage(from: defaultImageURL, into: imageView)
+            return
+        }
         
-        let imageURL = urlString ?? defaultImages.randomElement()!
-        guard let url = URL(string: imageURL) else { return }
-        
+        // If it's already a full URL, use it
+        if path.starts(with: "http") {
+            loadRemoteImage(from: path, into: imageView)
+        } else {
+            // Generate Cloudinary URL from public ID
+            if let url = cloudinary.createUrl().generate(path) {
+                loadRemoteImage(from: url, into: imageView)
+            }
+        }
+    }
+    
+    func loadRemoteImage(from urlString: String, into imageView: UIImageView) {
+        guard let url = URL(string: urlString) else { return }
         URLSession.shared.dataTask(with: url) { data, _, _ in
             guard let data = data, let image = UIImage(data: data) else { return }
             DispatchQueue.main.async {
@@ -319,7 +382,7 @@ class TicketViewList: UIViewController {
     }
 }
 
-// MARK: - Ticket model
+// MARK: - Ticket model (No changes)
 struct Ticket: Codable {
     let ticket_id: Int
     let due: String
@@ -329,4 +392,3 @@ struct Ticket: Codable {
     let image_url: String?
     let priority: String?
 }
-

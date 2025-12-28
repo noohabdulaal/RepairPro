@@ -13,6 +13,7 @@
 		C6FAF18C2F01562B00C69699 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = C6FAF18B2F01562B00C69699 /* FirebaseCrashlytics */; };
 		C6FAF18E2F01562B00C69699 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = C6FAF18D2F01562B00C69699 /* FirebaseDatabase */; };
 		C6FAF1902F01562B00C69699 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = C6FAF18F2F01562B00C69699 /* FirebaseFirestore */; };
+		C6FAF1932F0167E000C69699 /* Cloudinary in Frameworks */ = {isa = PBXBuildFile; productRef = C6FAF1922F0167E000C69699 /* Cloudinary */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -74,6 +75,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6FAF1932F0167E000C69699 /* Cloudinary in Frameworks */,
 				C6FAF18E2F01562B00C69699 /* FirebaseDatabase in Frameworks */,
 				C6FAF1862F01562B00C69699 /* FirebaseAnalytics in Frameworks */,
 				C6FAF18C2F01562B00C69699 /* FirebaseCrashlytics in Frameworks */,
@@ -146,6 +148,7 @@
 				C6FAF18B2F01562B00C69699 /* FirebaseCrashlytics */,
 				C6FAF18D2F01562B00C69699 /* FirebaseDatabase */,
 				C6FAF18F2F01562B00C69699 /* FirebaseFirestore */,
+				C6FAF1922F0167E000C69699 /* Cloudinary */,
 			);
 			productName = RepairPro;
 			productReference = 9B82678D2ED2FA32006D71E4 /* RepairPro.app */;
@@ -231,6 +234,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				C6FAF1842F01562B00C69699 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+				C6FAF1912F0167E000C69699 /* XCRemoteSwiftPackageReference "cloudinary_ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B82678E2ED2FA32006D71E4 /* Products */;
@@ -597,6 +601,14 @@
 				minimumVersion = 12.7.0;
 			};
 		};
+		C6FAF1912F0167E000C69699 /* XCRemoteSwiftPackageReference "cloudinary_ios" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/cloudinary/cloudinary_ios.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.2.4;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -629,6 +641,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = C6FAF1842F01562B00C69699 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseFirestore;
+		};
+		C6FAF1922F0167E000C69699 /* Cloudinary */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6FAF1912F0167E000C69699 /* XCRemoteSwiftPackageReference "cloudinary_ios" */;
+			productName = Cloudinary;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -1,15 +1,13 @@
-//
-//  TechnitionsViewController.swift
-//  RepairPro
-//
-
 import UIKit
+import FirebaseFirestore
+import Cloudinary
 
 // MARK: - Technician model
 struct Technician: Codable {
     let name: String
     let department: String
     let phone: String
+    let profileImage: String? // Optional Cloudinary public ID or URL
 }
 
 class TechnitionsViewController: UIViewController {
@@ -19,13 +17,16 @@ class TechnitionsViewController: UIViewController {
 
     var technicians: [Technician] = []
 
+    let db = Firestore.firestore()
+    let cloudinary = CLDCloudinary(configuration: CLDConfiguration(cloudName: "dtthzideh"))
+
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Technicians"
-        
+
         scrollView.translatesAutoresizingMaskIntoConstraints = false
         stackView.translatesAutoresizingMaskIntoConstraints = false
-        
+
         setupScrollViewAndStackView()
         fetchTechnicians()
     }
@@ -49,28 +50,36 @@ class TechnitionsViewController: UIViewController {
         ])
     }
 
-    // MARK: - Fetch technicians from Supabase
+    // MARK: - Fetch technicians from Firestore
     func fetchTechnicians() {
-        Task {
-            do {
-                // Adjust schema.table here to your setup: public.catch.technitions
-                let fetchedTechnicians: [Technician] = try await SupabaseClientManager.shared.client
-                    .from("catch.technitions") // schema "catch" + table "technitions"
-                    .select()
-                    .execute()
-                    .value
+        db.collection("Technicians").getDocuments { [weak self] snapshot, error in
+            guard let self = self else { return }
 
-                print("Fetched technicians:", fetchedTechnicians) // Debug print
+            if let error = error {
+                self.showErrorAlert(message: "Failed to load technicians: \(error.localizedDescription)")
+                return
+            }
 
-                self.technicians = fetchedTechnicians
+            guard let documents = snapshot?.documents else {
+                self.showErrorAlert(message: "No technicians found.")
+                return
+            }
 
-                await MainActor.run {
-                    displayTechnicians()
+            var fetchedTechnicians: [Technician] = []
+
+            for doc in documents {
+                do {
+                    let data = try JSONSerialization.data(withJSONObject: doc.data())
+                    let technician = try JSONDecoder().decode(Technician.self, from: data)
+                    fetchedTechnicians.append(technician)
+                } catch {
+                    print("Error decoding technician:", error)
                 }
-            } catch {
-                await MainActor.run {
-                    showErrorAlert(message: "Failed to load technicians: \(error.localizedDescription)")
-                }
+            }
+
+            self.technicians = fetchedTechnicians
+            DispatchQueue.main.async {
+                self.displayTechnicians()
             }
         }
     }
@@ -85,7 +94,18 @@ class TechnitionsViewController: UIViewController {
             containerView.layer.cornerRadius = 12
             containerView.clipsToBounds = true
             containerView.translatesAutoresizingMaskIntoConstraints = false
-            containerView.heightAnchor.constraint(equalToConstant: 100).isActive = true
+            containerView.heightAnchor.constraint(equalToConstant: 120).isActive = true
+
+            // Technician Image
+            let imageView = UIImageView()
+            imageView.contentMode = .scaleAspectFill
+            imageView.clipsToBounds = true
+            imageView.layer.cornerRadius = 30
+            imageView.backgroundColor = .systemGray4
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(imageView)
+
+            loadImageFromCloudinary(publicIDOrURL: technician.profileImage, into: imageView)
 
             // Technician info
             let nameLabel = UILabel()
@@ -107,18 +127,50 @@ class TechnitionsViewController: UIViewController {
             containerView.addSubview(phoneLabel)
 
             NSLayoutConstraint.activate([
-                nameLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                imageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                imageView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 60),
+                imageView.heightAnchor.constraint(equalToConstant: 60),
+
+                nameLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 12),
                 nameLabel.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
 
-                departmentLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                departmentLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 12),
                 departmentLabel.topAnchor.constraint(equalTo: nameLabel.bottomAnchor, constant: 4),
 
-                phoneLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+                phoneLabel.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 12),
                 phoneLabel.topAnchor.constraint(equalTo: departmentLabel.bottomAnchor, constant: 4)
             ])
 
             stackView.addArrangedSubview(containerView)
         }
+    }
+
+    // MARK: - Cloudinary Image Loader
+    func loadImageFromCloudinary(publicIDOrURL: String?, into imageView: UIImageView) {
+        let defaultImageURL = "https://res.cloudinary.com/dtthzideh/image/upload/v1766927687/Copilot_20251225_112235_zuxqkf.png"
+        guard let path = publicIDOrURL, !path.isEmpty else {
+            loadRemoteImage(from: defaultImageURL, into: imageView)
+            return
+        }
+
+        if path.starts(with: "http") {
+            loadRemoteImage(from: path, into: imageView)
+        } else {
+            if let url = cloudinary.createUrl().generate(path) {
+                loadRemoteImage(from: url, into: imageView)
+            }
+        }
+    }
+
+    func loadRemoteImage(from urlString: String, into imageView: UIImageView) {
+        guard let url = URL(string: urlString) else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                imageView.image = image
+            }
+        }.resume()
     }
 
     // MARK: - Error alert
