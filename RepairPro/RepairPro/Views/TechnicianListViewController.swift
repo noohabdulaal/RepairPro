@@ -1,6 +1,9 @@
 import UIKit
 
-final class TechnicianListViewController: UIViewController, UITableViewDataSource, UITableViewDelegate, UITextFieldDelegate {
+final class TechnicianListViewController: UIViewController,
+                                         UITableViewDataSource,
+                                         UITableViewDelegate,
+                                         UITextFieldDelegate {
 
     // MARK: - Outlets
     @IBOutlet weak var sectionContainerView: UIView!
@@ -8,12 +11,10 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
     @IBOutlet weak var departmentDropdownView: UIView!
     @IBOutlet weak var addTechnicianButton: UIButton!
     @IBOutlet weak var tableView: UITableView!
-
-    // Add these outlets in storyboard (recommended)
-    
     @IBOutlet weak var searchTextField: UITextField!
+    @IBOutlet weak var departmentArrowImageView: UIImageView!
     @IBOutlet weak var departmentValueLabel: UILabel!
-    
+
     // MARK: - Model
     struct Technician: Equatable {
         let id: UUID
@@ -24,60 +25,55 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
 
     private var technicians: [Technician] = []
     private var filtered: [Technician] = []
-
-    private var selectedDepartment: String? = nil  // nil = All Departments
+    private var selectedDepartment: String? = nil
     private var selectedForEdit: Technician?
 
-    private var searchText: String {
-        (searchTextField?.text ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-    }
+    // ✅ NEW: prevents double-trigger / double-rotation while sheet is open
+    private var isDepartmentSheetOpen = false
 
-    private var displayedTechnicians: [Technician] {
-        filtered
+    private var searchText: String {
+        searchTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
     }
 
     // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Test data (replace later with Firebase)
         technicians = [
             .init(id: UUID(), name: "Ahmed Darwish", department: "IT Support", phone: "+973 3321 8745"),
             .init(id: UUID(), name: "Sara Mansoor", department: "Maintenance", phone: "+973 3952 1067"),
             .init(id: UUID(), name: "Khalid Haddad", department: "Facilities", phone: "+973 3664 9821"),
-            .init(id: UUID(), name: "Ahmed Darwish Senior IT Infrastructure & Systems Administrator", department: "Network & Systems Operations Department", phone: "+973 3333 3333"),
+            .init(id: UUID(),
+                  name: "Ahmed Darwish Senior IT Infrastructure & Systems Administrator",
+                  department: "Network & Systems Operations Department",
+                  phone: "+973 3333 3333")
         ]
-        applyFiltersAndReload()
 
         tableView.dataSource = self
         tableView.delegate = self
-
+        tableView.separatorStyle = .none
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 140
-        tableView.separatorStyle = .none
-
-        // Good defaults for your design
         tableView.backgroundColor = view.backgroundColor
-        tableView.contentInset = UIEdgeInsets(top: 12, left: 0, bottom: 120, right: 0) // bottom room for future nav
+
+        tableView.contentInset = UIEdgeInsets(top: 8, left: 0, bottom: 120, right: 0)
         tableView.scrollIndicatorInsets = tableView.contentInset
 
-        // Search
-        searchTextField?.delegate = self
-        searchTextField?.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
+        searchTextField.delegate = self
+        searchTextField.addTarget(self, action: #selector(searchChanged), for: .editingChanged)
 
-        // Dropdown tap
         let tap = UITapGestureRecognizer(target: self, action: #selector(departmentDropdownTapped))
         departmentDropdownView.addGestureRecognizer(tap)
         departmentDropdownView.isUserInteractionEnabled = true
 
-        // Styling (keep yours if you want — not the main part here)
         styleScreenBackground()
         styleSectionContainer()
         styleSearchBar()
         styleDepartmentDropdown()
         styleAddTechnicianButton()
 
-        departmentValueLabel?.text = "All Departments"
+        departmentValueLabel.text = "All Departments"
+        applyFiltersAndReload()
     }
 
     override func viewDidLayoutSubviews() {
@@ -91,37 +87,72 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
 
     // MARK: - Actions
     @IBAction func addTechnicianTapped(_ sender: UIButton) {
-        performSegue(withIdentifier: "showAddTechnician", sender: nil)
+        sender.animateAndThen {
+            self.performSegue(withIdentifier: "showAddTechnician", sender: nil)
+        }
     }
 
     @objc private func searchChanged() {
         applyFiltersAndReload()
     }
 
+    func textFieldShouldReturn(_ textField: UITextField) -> Bool {
+        textField.resignFirstResponder()
+        return true
+    }
+
+    // MARK: - Dropdown (FIXED: no double 180, tint lasts a bit longer)
     @objc private func departmentDropdownTapped() {
         view.endEditing(true)
 
-        let allDepartments = Array(Set(technicians.map { $0.department })).sorted()
+        // ✅ stop double-tap double-rotation while the sheet is open
+        guard !isDepartmentSheetOpen else { return }
+        isDepartmentSheetOpen = true
 
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        // Rotate once to “open” state (180° looks most natural for chevron-down → chevron-up)
+        UIView.animate(withDuration: 0.15) {
+            self.departmentArrowImageView.transform = CGAffineTransform(rotationAngle: .pi)
+        }
+
+        // Darker highlight + lasts a bit longer, then fades back (even while sheet is open)
+        departmentDropdownView.backgroundColor = UIColor(white: 0.93, alpha: 1)   // darker than before
+        UIView.animate(withDuration: 0.18, delay: 0.22, options: [.curveEaseOut]) { // lasts a bit longer
+            self.departmentDropdownView.backgroundColor = UIColor(white: 0.97, alpha: 1)
+        }
+
+        let departments = Array(Set(technicians.map { $0.department })).sorted()
         let sheet = UIAlertController(title: "Department", message: nil, preferredStyle: .actionSheet)
 
-        sheet.addAction(UIAlertAction(title: "All Departments", style: .default) { [weak self] _ in
-            self?.selectedDepartment = nil
-            self?.departmentValueLabel?.text = "All Departments"
-            self?.applyFiltersAndReload()
+        // helper to reset arrow + unlock taps when sheet closes
+        func closeSheetUI() {
+            UIView.animate(withDuration: 0.15) {
+                self.departmentArrowImageView.transform = .identity
+            }
+            self.isDepartmentSheetOpen = false
+        }
+
+        sheet.addAction(UIAlertAction(title: "All Departments", style: .default) { _ in
+            self.selectedDepartment = nil
+            self.departmentValueLabel.text = "All Departments"
+            self.applyFiltersAndReload()
+            closeSheetUI()
         })
 
-        for dept in allDepartments {
-            sheet.addAction(UIAlertAction(title: dept, style: .default) { [weak self] _ in
-                self?.selectedDepartment = dept
-                self?.departmentValueLabel?.text = dept
-                self?.applyFiltersAndReload()
+        for dept in departments {
+            sheet.addAction(UIAlertAction(title: dept, style: .default) { _ in
+                self.selectedDepartment = dept
+                self.departmentValueLabel.text = dept
+                self.applyFiltersAndReload()
+                closeSheetUI()
             })
         }
 
-        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        sheet.addAction(UIAlertAction(title: "Cancel", style: .cancel) { _ in
+            closeSheetUI()
+        })
 
-        // iPad safety (doesn’t hurt on iPhone)
         if let pop = sheet.popoverPresentationController {
             pop.sourceView = departmentDropdownView
             pop.sourceRect = departmentDropdownView.bounds
@@ -135,18 +166,12 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
         let text = searchText.lowercased()
 
         filtered = technicians.filter { tech in
-            let matchesDept = (selectedDepartment == nil) || (tech.department == selectedDepartment)
-
-            if text.isEmpty {
-                return matchesDept
-            }
-
-            let matchesText =
-                tech.name.lowercased().contains(text) ||
-                tech.department.lowercased().contains(text) ||
-                tech.phone.lowercased().contains(text)
-
-            return matchesDept && matchesText
+            let matchesDept = selectedDepartment == nil || tech.department == selectedDepartment
+            if text.isEmpty { return matchesDept }
+            return matchesDept &&
+                (tech.name.lowercased().contains(text) ||
+                 tech.department.lowercased().contains(text) ||
+                 tech.phone.lowercased().contains(text))
         }
 
         tableView.reloadData()
@@ -155,15 +180,13 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
     // MARK: - Delete
     private func confirmDelete(_ tech: Technician) {
         let alert = UIAlertController(
-            title: "Confirmation",
-            message: "Are you sure you want to delete this technician?",
+            title: "Delete Technician",
+            message: "Are you sure you want to delete \"\(tech.name)\"?\nThis action cannot be undone.",
             preferredStyle: .alert
         )
 
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-
-        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { [weak self] _ in
-            guard let self else { return }
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
             self.technicians.removeAll { $0.id == tech.id }
             self.applyFiltersAndReload()
         })
@@ -171,15 +194,15 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
         present(alert, animated: true)
     }
 
-    // MARK: - Table Data
+    // MARK: - Table
     func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
-        displayedTechnicians.count
+        filtered.count
     }
 
     func tableView(_ tableView: UITableView,
                    cellForRowAt indexPath: IndexPath) -> UITableViewCell {
 
-        let tech = displayedTechnicians[indexPath.row]
+        let tech = filtered[indexPath.row]
 
         let cell = tableView.dequeueReusableCell(
             withIdentifier: "TechnicianCell",
@@ -188,56 +211,46 @@ final class TechnicianListViewController: UIViewController, UITableViewDataSourc
 
         cell.configure(name: tech.name, department: tech.department, phone: tech.phone)
 
-        cell.onEditTapped = { [weak self] in
-            self?.selectedForEdit = tech
-            self?.performSegue(withIdentifier: "showEditTechnician", sender: nil)
+        cell.onEditTapped = {
+            self.selectedForEdit = tech
+            self.performSegue(withIdentifier: "showEditTechnician", sender: nil)
         }
 
-        cell.onDeleteTapped = { [weak self] in
-            self?.confirmDelete(tech)
+        cell.onDeleteTapped = {
+            self.confirmDelete(tech)
         }
 
         return cell
     }
 
-    // MARK: - Segues
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "showEditTechnician",
-           let editVC = segue.destination as? EditTechnicianViewController {
-            editVC.technicianName = selectedForEdit?.name ?? ""
-        }
-    }
-
-    // MARK: - Styling (keep yours)
+    // MARK: - Styling
     private func styleScreenBackground() {
-        view.backgroundColor = UIColor(red: 242/255, green: 242/255, blue: 247/255, alpha: 1)
+        view.backgroundColor = UIColor(red: 255/255, green: 255/255, blue: 255/255, alpha: 1)
     }
 
     private func styleSectionContainer() {
-        sectionContainerView.backgroundColor = UIColor(red: 232/255, green: 232/255, blue: 238/255, alpha: 1)
+        sectionContainerView.backgroundColor = UIColor(white: 0.97, alpha: 1)
         sectionContainerView.layer.cornerRadius = 16
-        sectionContainerView.layer.masksToBounds = false
         sectionContainerView.layer.shadowColor = UIColor.black.cgColor
-        sectionContainerView.layer.shadowOpacity = 0.15
-        sectionContainerView.layer.shadowRadius = 8
+        sectionContainerView.layer.shadowOpacity = 0.14
+        sectionContainerView.layer.shadowRadius = 4
         sectionContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
     }
 
     private func styleSearchBar() {
-        searchContainerView.backgroundColor = UIColor(red: 220/255, green: 220/255, blue: 225/255, alpha: 1)
+        searchContainerView.backgroundColor = UIColor(white: 0.92, alpha: 1)
         searchContainerView.layer.cornerRadius = 12
-        searchContainerView.layer.masksToBounds = true
     }
 
     private func styleDepartmentDropdown() {
-        departmentDropdownView.backgroundColor = .white
+        departmentDropdownView.backgroundColor = UIColor(white: 0.97, alpha: 1)
         departmentDropdownView.layer.cornerRadius = 12
         departmentDropdownView.layer.borderWidth = 1
-        departmentDropdownView.layer.borderColor = UIColor(red: 209/255, green: 209/255, blue: 214/255, alpha: 1).cgColor
+        departmentDropdownView.layer.borderColor = UIColor.systemGray4.cgColor
     }
 
     private func styleAddTechnicianButton() {
         addTechnicianButton.layer.cornerRadius = 12
-        addTechnicianButton.layer.masksToBounds = true
+        addTechnicianButton.addPressAnimation()
     }
 }

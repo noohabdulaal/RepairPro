@@ -8,20 +8,21 @@
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
-        <!--View Controller-->
+        <!--Dashboard Controller-->
         <scene sceneID="s0d-6b-0kx">
             <objects>
-                <viewController id="Y6W-OH-hqX" sceneMemberID="viewController">
+                <viewController id="Y6W-OH-hqX" userLabel="Dashboard Controller" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="5EZ-qb-Rvc">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <viewLayoutGuide key="safeArea" id="vDu-zF-Fre"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                     </view>
+                    <navigationItem key="navigationItem" id="JHi-qn-Tbk"/>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="Ief-a0-LHa" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="138" y="4"/>
+            <point key="canvasLocation" x="1063.3587786259541" y="3.5211267605633805"/>
         </scene>
         <!--Technician List View Controller-->
         <scene sceneID="VuT-gD-i2T">
@@ -65,14 +66,13 @@
                                     <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="BW2-Xf-GLT" userLabel="departmentDropdownView">
                                         <rect key="frame" x="16" y="73" width="329" height="45"/>
                                         <subviews>
-                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" fixedFrame="YES" text="All Departments" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LQe-4P-70L">
-                                                <rect key="frame" x="16" y="12" width="122.33333333333331" height="21"/>
-                                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="All Departments" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="LQe-4P-70L">
+                                                <rect key="frame" x="12" y="12.333333333333341" width="269" height="20.333333333333329"/>
                                                 <fontDescription key="fontDescription" type="system" pointSize="17"/>
                                                 <nil key="textColor"/>
                                                 <nil key="highlightedColor"/>
                                             </label>
-                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="251" verticalHuggingPriority="251" image="chevron.down" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="iRO-Lb-vGc">
+                                            <imageView clipsSubviews="YES" userInteractionEnabled="NO" contentMode="scaleAspectFit" horizontalHuggingPriority="1000" verticalHuggingPriority="251" horizontalCompressionResistancePriority="1000" image="chevron.down" catalog="system" translatesAutoresizingMaskIntoConstraints="NO" id="iRO-Lb-vGc">
                                                 <rect key="frame" x="289" y="15.999999999999989" width="24" height="13.999999999999996"/>
                                                 <color key="tintColor" white="0.0" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                                 <constraints>
@@ -84,7 +84,10 @@
                                         <color key="backgroundColor" white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
                                         <constraints>
                                             <constraint firstItem="iRO-Lb-vGc" firstAttribute="centerY" secondItem="BW2-Xf-GLT" secondAttribute="centerY" id="0vx-YB-NJk"/>
+                                            <constraint firstItem="LQe-4P-70L" firstAttribute="centerY" secondItem="BW2-Xf-GLT" secondAttribute="centerY" id="PQK-xK-TiX"/>
                                             <constraint firstAttribute="trailing" secondItem="iRO-Lb-vGc" secondAttribute="trailing" constant="16" id="PbD-I9-Zbd"/>
+                                            <constraint firstItem="iRO-Lb-vGc" firstAttribute="leading" secondItem="LQe-4P-70L" secondAttribute="trailing" constant="8" id="Q6A-Uc-5Xa"/>
+                                            <constraint firstItem="LQe-4P-70L" firstAttribute="leading" secondItem="BW2-Xf-GLT" secondAttribute="leading" constant="12" id="lIc-kw-BBa"/>
                                             <constraint firstAttribute="height" constant="45" id="pYH-de-LIh"/>
                                         </constraints>
                                     </view>
@@ -111,7 +114,7 @@
                                     <color key="baseBackgroundColor" red="0.1058823466" green="0.26666668059999998" blue="0.43921568989999998" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
                                 </buttonConfiguration>
                                 <connections>
-                                    <segue destination="JXp-fN-Nr0" kind="show" identifier="showAddTechnician" id="pKL-FB-dpF"/>
+                                    <action selector="addTechnicianTapped:" destination="nH5-ci-OxL" eventType="touchUpInside" id="tUr-CJ-0C9"/>
                                 </connections>
                             </button>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" contentInsetAdjustmentBehavior="never" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="120" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="c8C-Yh-r8G">
@@ -225,18 +228,20 @@
                     </view>
                     <connections>
                         <outlet property="addTechnicianButton" destination="wTT-YG-Ltj" id="CRW-dJ-IQT"/>
+                        <outlet property="departmentArrowImageView" destination="iRO-Lb-vGc" id="y7d-tg-qBM"/>
                         <outlet property="departmentDropdownView" destination="BW2-Xf-GLT" id="F9k-nQ-SOu"/>
                         <outlet property="departmentValueLabel" destination="LQe-4P-70L" id="ZC2-b3-rZ8"/>
                         <outlet property="searchContainerView" destination="bDY-ID-yMo" id="zhy-F4-bqx"/>
                         <outlet property="searchTextField" destination="2e8-3f-Q68" id="JZd-Su-0az"/>
                         <outlet property="sectionContainerView" destination="1kp-A7-9sO" id="7pQ-F9-cUG"/>
                         <outlet property="tableView" destination="c8C-Yh-r8G" id="K0v-zn-rJi"/>
-                        <segue destination="OFY-ZP-7Ca" kind="show" identifier="showEditTechnician" id="FOo-Im-YSe"/>
+                        <segue destination="JXp-fN-Nr0" kind="show" identifier="showAddTechnician" id="df4-9F-Vmq"/>
+                        <segue destination="OFY-ZP-7Ca" kind="show" identifier="showEditTechnician" id="v7w-Lz-hfT"/>
                     </connections>
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="aZD-NT-TqW" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="872.51908396946567" y="3.5211267605633805"/>
+            <point key="canvasLocation" x="1799.2366412213739" y="3.5211267605633805"/>
         </scene>
         <!--Add Technician View Controller-->
         <scene sceneID="NFz-bd-Z4I">
@@ -252,7 +257,7 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="hQM-JC-QeX" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="1645" y="4"/>
+            <point key="canvasLocation" x="2570.2290076335876" y="3.5211267605633805"/>
         </scene>
         <!--Edit Technician View Controller-->
         <scene sceneID="kYF-SE-diC">
@@ -268,7 +273,25 @@
                 </viewController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="h5x-aC-bp3" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="2483" y="4"/>
+            <point key="canvasLocation" x="3408.3969465648852" y="3.5211267605633805"/>
+        </scene>
+        <!--Navigation Controller-->
+        <scene sceneID="Kgs-Ei-WMp">
+            <objects>
+                <navigationController automaticallyAdjustsScrollViewInsets="NO" id="epi-Lu-Xqq" sceneMemberID="viewController">
+                    <toolbarItems/>
+                    <navigationBar key="navigationBar" contentMode="scaleToFill" id="OWY-De-W5l">
+                        <rect key="frame" x="0.0" y="118" width="393" height="44"/>
+                        <autoresizingMask key="autoresizingMask"/>
+                    </navigationBar>
+                    <nil name="viewControllers"/>
+                    <connections>
+                        <segue destination="Y6W-OH-hqX" kind="relationship" relationship="rootViewController" id="iMW-pP-g1w"/>
+                    </connections>
+                </navigationController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="l9a-c4-hHl" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="136.64122137404578" y="3.5211267605633805"/>
         </scene>
     </scenes>
     <resources>

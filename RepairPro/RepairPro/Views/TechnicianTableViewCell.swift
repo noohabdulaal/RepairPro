@@ -1,19 +1,17 @@
 import UIKit
 
-class TechnicianTableViewCell: UITableViewCell {
+final class TechnicianTableViewCell: UITableViewCell {
 
-    // MARK: - IBOutlets
     @IBOutlet weak var cardContainerView: UIView!
     @IBOutlet weak var nameLabel: UILabel!
     @IBOutlet weak var departmentLabel: UILabel!
     @IBOutlet weak var phoneLabel: UILabel!
     @IBOutlet weak var editButton: UIButton!
     @IBOutlet weak var deleteButton: UIButton!
-    
+
     var onEditTapped: (() -> Void)?
     var onDeleteTapped: (() -> Void)?
 
-    // MARK: - Lifecycle
     override func awakeFromNib() {
         super.awakeFromNib()
 
@@ -36,58 +34,38 @@ class TechnicianTableViewCell: UITableViewCell {
 
     override func prepareForReuse() {
         super.prepareForReuse()
-        nameLabel.text = nil
-        departmentLabel.text = nil
-        phoneLabel.text = nil
+        onEditTapped = nil
+        onDeleteTapped = nil
     }
 
-    // MARK: - Configuration
     func configure(name: String, department: String, phone: String) {
         nameLabel.text = name
         departmentLabel.text = department
         phoneLabel.text = phone
     }
 
-    // MARK: - Styling
-
     private func setupCardStyle() {
-        // 🔹 Slightly darker than background (Figma match)
-        cardContainerView.backgroundColor = UIColor(
-            red: 250/255,
-            green: 250/255,
-            blue: 252/255,
-            alpha: 1
-        )
-
+        cardContainerView.backgroundColor = UIColor(white: 0.97, alpha: 1)
         cardContainerView.layer.cornerRadius = 16
-        cardContainerView.layer.masksToBounds = false
-
-        // 🔹 Subtle depth shadow (NOT floating)
         cardContainerView.layer.shadowColor = UIColor.black.cgColor
-        cardContainerView.layer.shadowOpacity = 0.08
-        cardContainerView.layer.shadowRadius = 6
+        cardContainerView.layer.shadowOpacity = 0.14
+        cardContainerView.layer.shadowRadius = 4
         cardContainerView.layer.shadowOffset = CGSize(width: 0, height: 3)
-
-        cardContainerView.layer.shouldRasterize = true
-        cardContainerView.layer.rasterizationScale = UIScreen.main.scale
     }
 
     private func setupButtons() {
-        editButton.configurationUpdateHandler = { button in
-            button.alpha = button.isHighlighted ? 0.6 : 1
-        }
+        editButton.addPressAnimation()
+        deleteButton.addPressAnimation()
 
-        deleteButton.configurationUpdateHandler = { button in
-            button.alpha = button.isHighlighted ? 0.6 : 1
-        }
+        editButton.addTarget(self, action: #selector(editTapped), for: .touchUpInside)
+        deleteButton.addTarget(self, action: #selector(deleteTapped), for: .touchUpInside)
     }
 
-    // MARK: - Actions
-    @IBAction func editButtonTapped(_ sender: UIButton) {
+    @objc private func editTapped() {
         onEditTapped?()
     }
 
-    @IBAction func deleteButtonTapped(_ sender: UIButton) {
+    @objc private func deleteTapped() {
         onDeleteTapped?()
     }
 }
