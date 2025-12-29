@@ -1,9 +1,10 @@
 //
-//  Edittickets.swift
-//  RepairPro
+//  Edittickets.swift (UPDATED)
+//  Auto-sets status to "Assigned" when technician selected + save
 //
 
 import UIKit
+import FirebaseFirestore
 
 class Edittickets: UIViewController {
     
@@ -21,15 +22,44 @@ class Edittickets: UIViewController {
     // MARK: - Priority Segmented Control
     @IBOutlet weak var prioritySegment: UISegmentedControl!
     
+    // MARK: - Technician Button
+    @IBOutlet weak var technicianButton: UIButton!
+    
     // MARK: - Save Button
     @IBOutlet weak var saveButton: UIButton!
+    
+    // MARK: - Firestore
+    let db = Firestore.firestore()
+    
+    // MARK: - Technician Selection
+    var selectedTechnician: Technician?
+    let availableTechnicians = [
+        Technician(id: 1, name: "Ahmed Abbas"),
+        Technician(id: 2, name: "Sarah Johnson"),
+        Technician(id: 3, name: "Mike Chen"),
+        Technician(id: 4, name: "Emma Wilson"),
+        Technician(id: 5, name: "David Martinez"),
+        Technician(id: 6, name: "Lisa Anderson"),
+        Technician(id: 7, name: "Tom Brown")
+    ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.backgroundColor = .white
         displayTicketDetails()
         setupPrioritySegment()
-        loadTicketImage() // ✅ IMAGE FEATURE
+        setupTechnicianButton()
+        loadTicketImage()
+        loadExistingTechnician()
+        updatePredictedDeadline()
+        
+        // Make deadline read-only
+        dueDateLabel.isEnabled = false
+        dueDateLabel.textColor = .systemGray
+        
+        // Make status read-only (will be auto-updated)
+        statusLabel.isEnabled = false
+        statusLabel.textColor = .systemGray
     }
     
     // MARK: - Display ticket info
@@ -42,7 +72,80 @@ class Edittickets: UIViewController {
         dueDateLabel.text = ticket.due
     }
     
-    // MARK: - Load ticket image (updated to random default if none)
+    // MARK: - Load Existing Technician
+    func loadExistingTechnician() {
+        guard let ticket = ticket,
+              let technicianID = ticket.technician_id,
+              let technicianName = ticket.technician_name else { return }
+        
+        if let technician = availableTechnicians.first(where: { $0.id == technicianID }) {
+            selectedTechnician = technician
+        } else {
+            selectedTechnician = Technician(id: technicianID, name: technicianName)
+        }
+        
+        updateTechnicianButtonTitle()
+    }
+    
+    // MARK: - Setup Technician Button
+    func setupTechnicianButton() {
+        guard let button = technicianButton else { return }
+        
+        var config = UIButton.Configuration.plain()
+        config.baseForegroundColor = .systemGray
+        config.background.backgroundColor = UIColor.systemGray6
+        config.background.cornerRadius = 8
+        config.background.strokeWidth = 0.5
+        config.background.strokeColor = UIColor.systemGray4
+        config.contentInsets = NSDirectionalEdgeInsets(top: 14, leading: 16, bottom: 14, trailing: 16)
+        
+        let chevronConfig = UIImage.SymbolConfiguration(pointSize: 13, weight: .semibold)
+        let chevronImage = UIImage(systemName: "chevron.down", withConfiguration: chevronConfig)
+        config.image = chevronImage
+        config.imagePlacement = .trailing
+        config.imagePadding = 10
+        
+        button.configuration = config
+        button.contentHorizontalAlignment = .leading
+        
+        updateTechnicianButtonTitle()
+        
+        button.addTarget(self, action: #selector(technicianButtonTapped), for: .touchUpInside)
+    }
+    
+    // MARK: - Update Technician Button Title
+    func updateTechnicianButtonTitle() {
+        guard let button = technicianButton,
+              var config = button.configuration else { return }
+        
+        if let technician = selectedTechnician {
+            config.title = technician.name
+            config.baseForegroundColor = .label
+        } else {
+            config.title = "Select Technician"
+            config.baseForegroundColor = .systemGray
+        }
+        
+        button.configuration = config
+    }
+    
+    // MARK: - Technician Button Tapped
+    @objc func technicianButtonTapped() {
+        let pickerVC = TechnicianPickerViewController()
+        pickerVC.technicians = availableTechnicians
+        pickerVC.selectedTechnician = selectedTechnician
+        pickerVC.delegate = self
+        
+        let navController = UINavigationController(rootViewController: pickerVC)
+        if let sheet = navController.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+        }
+        
+        present(navController, animated: true)
+    }
+    
+    // MARK: - Load ticket image
     func loadTicketImage() {
         let defaultImages = [
             "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
@@ -75,14 +178,17 @@ class Edittickets: UIViewController {
     
     // MARK: - Setup priority segmented control
     func setupPrioritySegment() {
-        guard let status = ticket?.status.lowercased() else { return }
-        switch status {
-        case "high":
+        guard let priority = ticket?.priority else { return }
+        
+        switch priority.lowercased() {
+        case "critical":
             prioritySegment.selectedSegmentIndex = 0
-        case "medium":
+        case "high":
             prioritySegment.selectedSegmentIndex = 1
-        case "low":
+        case "medium":
             prioritySegment.selectedSegmentIndex = 2
+        case "low":
+            prioritySegment.selectedSegmentIndex = 3
         default:
             prioritySegment.selectedSegmentIndex = UISegmentedControl.noSegment
         }
@@ -90,39 +196,178 @@ class Edittickets: UIViewController {
     
     // MARK: - Priority changed
     @IBAction func priorityChanged(_ sender: UISegmentedControl) {
-        guard var ticket = ticket else { return }
-        
-        switch sender.selectedSegmentIndex {
-        case 0:
-            ticket.status = "High"
-        case 1:
-            ticket.status = "Medium"
-        case 2:
-            ticket.status = "Low"
-        default:
-            break
-        }
-        
-        statusLabel.text = ticket.status
-        self.ticket = ticket
+        updatePredictedDeadline()
+        updateStatusPreview()
     }
     
-    // MARK: - Save Button Action
+    // ✅ NEW: Update Status Preview
+    func updateStatusPreview() {
+        // If technician is selected, show "Assigned"
+        if selectedTechnician != nil {
+            statusLabel.text = "Assigned"
+        } else {
+            statusLabel.text = "Pending"
+        }
+    }
+    
+    // MARK: - Update Predicted Deadline
+    func updatePredictedDeadline() {
+        // Determine status based on technician selection
+        let status: TicketStatus = selectedTechnician != nil ? .assigned : .pending
+        let priority = getSelectedPriority()
+        
+        // Calculate deadline
+        let deadline = DeadlineCalculator.calculateDeadline(
+            status: status,
+            priority: priority
+        )
+        
+        // Display predicted deadline
+        let formatted = DeadlineCalculator.formatDeadline(deadline)
+        let timeRemaining = DeadlineCalculator.timeRemaining(until: deadline)
+        dueDateLabel.text = "📅 \(formatted) (\(timeRemaining))"
+        dueDateLabel.textColor = .systemGreen
+    }
+    
+    // MARK: - Get Selected Priority
+    func getSelectedPriority() -> TicketPriority {
+        switch prioritySegment.selectedSegmentIndex {
+        case 0:
+            return .critical
+        case 1:
+            return .high
+        case 2:
+            return .medium
+        case 3:
+            return .low
+        default:
+            return .medium
+        }
+    }
+    
+    // MARK: - Save Button Action (UPDATED)
     @IBAction func saveButtonTapped(_ sender: UIButton) {
-        guard let ticket = ticket else { return }
+        guard var ticket = ticket else { return }
         
-        print("Ticket #\(ticket.ticket_id) saved with status: \(ticket.status)")
+        // ✅ Check if technician is selected
+        guard let technician = selectedTechnician else {
+            showAlert(title: "Technician Required", message: "Please select a technician before saving")
+            return
+        }
         
-        let alert = UIAlertController(title: nil,
-                                      message: "Ticket has been assigned",
-                                      preferredStyle: .alert)
+        // Get selected priority
+        let priority = getSelectedPriority()
+        
+        // ✅ Set status to "Assigned" when technician is selected
+        let status: TicketStatus = .assigned
+        
+        // ✅ AUTO-GENERATE DEADLINE based on Assigned status + priority
+        let deadline = DeadlineCalculator.calculateDeadline(
+            status: status,
+            priority: priority
+        )
+        
+        // Update ticket with selected technician
+        ticket.technician_id = technician.id
+        ticket.technician_name = technician.name
+        
+        // Save to Firestore
+        saveTicketToFirestore(
+            ticket: ticket,
+            status: status,
+            priority: priority,
+            deadline: deadline
+        )
+    }
+    
+    // MARK: - Save Ticket to Firestore
+    func saveTicketToFirestore(
+        ticket: Ticket,
+        status: TicketStatus,
+        priority: TicketPriority,
+        deadline: Date
+    ) {
+        saveButton.isEnabled = false
+        saveButton.setTitle("Saving...", for: .normal)
+        
+        // Prepare data to update
+        var updateData: [String: Any] = [
+            "status": status.rawValue,  // ✅ Always "Assigned" when technician selected
+            "description": descriptionLabel.text ?? ticket.description,
+            "campus": campusLabel.text ?? ticket.campus,
+            "priority": priority.rawValue,
+            "due": DeadlineCalculator.formatDeadlineForFirebase(deadline)
+        ]
+        
+        // Add technician data
+        if let technicianID = ticket.technician_id,
+           let technicianName = ticket.technician_name {
+            updateData["technician_id"] = technicianID
+            updateData["technician_name"] = technicianName
+        }
+        
+        // Update Firestore document
+        db.collection("Tickets")
+            .whereField("ticket_id", isEqualTo: ticket.ticket_id)
+            .getDocuments { [weak self] snapshot, error in
+                guard let self = self else { return }
+                
+                if let error = error {
+                    print("❌ Error finding ticket: \(error.localizedDescription)")
+                    self.showErrorAndResetButton("Failed to save ticket")
+                    return
+                }
+                
+                guard let document = snapshot?.documents.first else {
+                    print("❌ Ticket document not found")
+                    self.showErrorAndResetButton("Ticket not found")
+                    return
+                }
+                
+                document.reference.updateData(updateData) { error in
+                    DispatchQueue.main.async {
+                        if let error = error {
+                            print("❌ Error updating ticket: \(error.localizedDescription)")
+                            self.showErrorAndResetButton("Failed to save changes")
+                        } else {
+                            print("✅ Ticket updated successfully!")
+                            print(" Status: Assigned")
+                            print(" New deadline: \(DeadlineCalculator.formatDeadline(deadline))")
+                            self.showSuccessAndReturn(deadline: deadline)
+                        }
+                    }
+                }
+            }
+    }
+    
+    // MARK: - Show Success and Return
+    func showSuccessAndReturn(deadline: Date) {
+        saveButton.setTitle("Save changes", for: .normal)
+        saveButton.isEnabled = true
+        
+        let deadlineStr = DeadlineCalculator.formatDeadline(deadline)
+        let timeRemaining = DeadlineCalculator.timeRemaining(until: deadline)
+        
+        let alert = UIAlertController(
+            title: "✅ Ticket Assigned",
+            message: "Status: Assigned\nDeadline: \(deadlineStr)\n(\(timeRemaining))",
+            preferredStyle: .alert
+        )
+        
         present(alert, animated: true)
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
             alert.dismiss(animated: true) {
                 self.navigationController?.popViewController(animated: true)
             }
         }
+    }
+    
+    // MARK: - Show Error and Reset Button
+    func showErrorAndResetButton(_ message: String) {
+        saveButton.setTitle("Save changes", for: .normal)
+        saveButton.isEnabled = true
+        showAlert(title: "Error", message: message)
     }
     
     // MARK: - Helper Alert
@@ -135,3 +380,14 @@ class Edittickets: UIViewController {
     }
 }
 
+// MARK: - Technician Picker Delegate
+extension Edittickets: TechnicianPickerDelegate {
+    func didSelectTechnician(_ technician: Technician) {
+        selectedTechnician = technician
+        updateTechnicianButtonTitle()
+        updateStatusPreview()  // ✅ Update status to "Assigned"
+        updatePredictedDeadline()  // ✅ Recalculate deadline with Assigned status
+        print("✅ Selected technician: \(technician.name)")
+        print(" Status will be: Assigned")
+    }
+}

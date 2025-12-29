@@ -1,3 +1,8 @@
+//
+//  TicketViewList.swift (UPDATED)
+//  Shows formatted deadline with urgency indicators on ticket cards
+//
+
 import UIKit
 import FirebaseFirestore
 import Cloudinary
@@ -18,14 +23,11 @@ class TicketViewList: UIViewController {
     var ticketsArray: [Ticket] = []
     var filteredTickets: [Ticket] = []
     
-    // MARK: - Filter State Properties (New)
     var currentStatusFilter: String? = nil
     var currentPriorityFilter: String? = nil
     var currentDeadlineFilter: String? = nil
     
     let db = Firestore.firestore()
-    
-    // Cloudinary configuration
     let cloudinary = CLDCloudinary(configuration: CLDConfiguration(cloudName: "dtthzideh"))
 
     override func viewDidLoad() {
@@ -37,11 +39,9 @@ class TicketViewList: UIViewController {
         
         setupScrollViewAndStackView()
         setupFilterButton()
-        // Start the real-time listener
         fetchTickets()
     }
     
-    // MARK: - UI Setup (No changes)
     func setupScrollViewAndStackView() {
         scrollView.constraints.forEach { scrollView.removeConstraint($0) }
         stackView.constraints.forEach { stackView.removeConstraint($0) }
@@ -87,9 +87,7 @@ class TicketViewList: UIViewController {
         present(filterVC, animated: true)
     }
     
-    // MARK: - Fetch Tickets from Firestore (Real-Time with Debugging)
     func fetchTickets() {
-        // Use addSnapshotListener for real-time updates
         db.collection("Tickets").addSnapshotListener { [weak self] snapshot, error in
             guard let self = self else { return }
 
@@ -109,62 +107,47 @@ class TicketViewList: UIViewController {
             var tickets: [Ticket] = []
             
             for doc in snapshot.documents {
-                // Print raw data to check for mismatch against Ticket struct
                 print("--- Document Data for \(doc.documentID) ---")
                 print(doc.data())
                 print("---------------------------------------")
                 
                 do {
-                    // Attempt to decode the document data
                     let ticket = try doc.data(as: Ticket.self)
                     tickets.append(ticket)
                     print("✅ Successfully decoded ticket ID: \(ticket.ticket_id)")
                 } catch {
-                    // IMPORTANT: This error is why your tickets aren't appearing!
                     print("❌ DECODING ERROR: Failed to decode ticket for document \(doc.documentID):")
                     print(error)
                 }
             }
             
             DispatchQueue.main.async {
-                // Update the master array, filtering out "pending" as before
                 self.ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
-                
-                // Re-apply current filters to the new, incoming data
                 self.applyCurrentFilters()
                 print("✅ Final ticketsArray count displayed: \(self.ticketsArray.count)")
             }
         }
     }
     
-    // MARK: - Display & Filter Tickets
     func displayTickets(_ tickets: [Ticket]) {
-        // Remove all old views before creating new ones
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         tickets.forEach { createTicketView(for: $0) }
     }
     
-    // Function to save filter state and run logic
     func applyFilters(status: String?, priority: String?, deadline: String?) {
-        // Save the current filter choices
         currentStatusFilter = status
         currentPriorityFilter = priority
         currentDeadlineFilter = deadline
-
-        // Run the filtering logic
         applyCurrentFilters()
     }
 
-    // Function containing the actual filtering logic
     func applyCurrentFilters() {
-        filteredTickets = ticketsArray // Start with all non-pending tickets
+        filteredTickets = ticketsArray
         
-        // 1. Filter by Status
         if let status = currentStatusFilter {
             filteredTickets = filteredTickets.filter { $0.status.lowercased() == status.lowercased() }
         }
         
-        // 2. Filter by Priority
         if let priority = currentPriorityFilter {
             switch priority.lowercased() {
             case "high":
@@ -177,13 +160,10 @@ class TicketViewList: UIViewController {
             }
         }
         
-        // 3. Sort by Deadline
         if let deadline = currentDeadlineFilter {
             filteredTickets.sort { first, second in
                 guard let date1 = ISO8601DateFormatter().date(from: first.due),
                       let date2 = ISO8601DateFormatter().date(from: second.due) else { return false }
-                
-                // Sorting for "nearest" (earlier date first)
                 return deadline.lowercased() == "nearest" ? date1 < date2 : date2 < date1
             }
         }
@@ -191,7 +171,7 @@ class TicketViewList: UIViewController {
         displayTickets(filteredTickets)
     }
 
-    // MARK: - Create Ticket View (No functional changes)
+    // MARK: - Create Ticket View (UPDATED with formatted deadline)
     func createTicketView(for ticket: Ticket) {
         let statusColor = getStatusColor(for: ticket.status)
         
@@ -200,34 +180,35 @@ class TicketViewList: UIViewController {
         containerView.layer.cornerRadius = 12
         containerView.clipsToBounds = true
         containerView.translatesAutoresizingMaskIntoConstraints = false
-        containerView.heightAnchor.constraint(equalToConstant: 140).isActive = true
+        
+        let hasTechi = ticket.technician_name != nil
+        containerView.heightAnchor.constraint(equalToConstant: hasTechi ? 180 : 160).isActive = true
         
         containerView.tag = ticket.ticket_id
         let tap = UITapGestureRecognizer(target: self, action: #selector(ticketTapped(_:)))
         containerView.addGestureRecognizer(tap)
         containerView.isUserInteractionEnabled = true
         
-        // Sidebar
         let sideBar = UIView()
         sideBar.backgroundColor = statusColor
         sideBar.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(sideBar)
         
-        // Ticket ID
         let ticketIDLabel = UILabel()
         ticketIDLabel.text = "Ticket ID: \(ticket.ticket_id)"
         ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketIDLabel)
         
-        // Due date
+        // ✅ UPDATED: Formatted due date with urgency
         let dueDateLabel = UILabel()
-        dueDateLabel.text = "Due: \(ticket.due)"
-        dueDateLabel.font = .systemFont(ofSize: 14)
+        let (formattedDate, urgencyEmoji, textColor) = formatDeadline(ticket.due)
+        dueDateLabel.text = "\(urgencyEmoji) Due: \(formattedDate)"
+        dueDateLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        dueDateLabel.textColor = textColor
         dueDateLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(dueDateLabel)
         
-        // Description
         let descriptionTitle = UILabel()
         descriptionTitle.text = "Description:"
         descriptionTitle.font = .systemFont(ofSize: 14, weight: .bold)
@@ -241,21 +222,39 @@ class TicketViewList: UIViewController {
         descriptionText.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(descriptionText)
         
-        // Status label
         let statusLabel = UILabel()
         statusLabel.text = "Status: \(ticket.status)"
         statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(statusLabel)
         
-        // Campus label
         let campusLabel = UILabel()
         campusLabel.text = "Campus \(ticket.campus)"
         campusLabel.font = .systemFont(ofSize: 13)
         campusLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(campusLabel)
         
-        // Status circle
+        // Technician label
+        var technicianLabel: UILabel?
+        if let technicianName = ticket.technician_name {
+            let label = UILabel()
+            label.text = "🛠️ Technician: \(technicianName)"
+            label.font = .systemFont(ofSize: 13)
+            label.textColor = .label
+            label.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(label)
+            technicianLabel = label
+        }
+        
+        // ✅ NEW: Time remaining label
+        let timeRemainingLabel = UILabel()
+        let timeRemaining = getTimeRemaining(from: ticket.due)
+        timeRemainingLabel.text = " \(timeRemaining)"
+        timeRemainingLabel.font = .systemFont(ofSize: 12, weight: .medium)
+        timeRemainingLabel.textColor = isOverdue(ticket.due) ? .systemRed : .systemGray
+        timeRemainingLabel.translatesAutoresizingMaskIntoConstraints = false
+        containerView.addSubview(timeRemainingLabel)
+        
         let statusCircle = UIView()
         statusCircle.backgroundColor = statusColor
         statusCircle.layer.cornerRadius = 25
@@ -269,7 +268,6 @@ class TicketViewList: UIViewController {
         tickLabel.translatesAutoresizingMaskIntoConstraints = false
         statusCircle.addSubview(tickLabel)
         
-        // Ticket Image
         let ticketImageView = UIImageView()
         ticketImageView.contentMode = .scaleAspectFill
         ticketImageView.clipsToBounds = true
@@ -280,7 +278,7 @@ class TicketViewList: UIViewController {
         
         loadImageFromCloudinary(publicIDOrURL: ticket.image_url, into: ticketImageView)
         
-        NSLayoutConstraint.activate([
+        var constraints = [
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             sideBar.topAnchor.constraint(equalTo: containerView.topAnchor),
             sideBar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
@@ -296,14 +294,16 @@ class TicketViewList: UIViewController {
             descriptionTitle.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 8),
             
             descriptionText.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            descriptionText.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -160), // Adjusted constraint
+            descriptionText.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -160),
             descriptionText.topAnchor.constraint(equalTo: descriptionTitle.bottomAnchor, constant: 2),
             
             statusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
             statusLabel.topAnchor.constraint(equalTo: descriptionText.bottomAnchor, constant: 6),
             
             campusLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
-            campusLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4),
+            
+            timeRemainingLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
+            timeRemainingLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12),
             
             statusCircle.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
             statusCircle.topAnchor.constraint(equalTo: dueDateLabel.bottomAnchor, constant: 12),
@@ -317,9 +317,94 @@ class TicketViewList: UIViewController {
             ticketImageView.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
             ticketImageView.widthAnchor.constraint(equalToConstant: 60),
             ticketImageView.heightAnchor.constraint(equalToConstant: 60)
-        ])
+        ]
         
+        if let techLabel = technicianLabel {
+            constraints.append(contentsOf: [
+                techLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
+                techLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4),
+                campusLabel.topAnchor.constraint(equalTo: techLabel.bottomAnchor, constant: 4)
+            ])
+        } else {
+            constraints.append(
+                campusLabel.topAnchor.constraint(equalTo: statusLabel.bottomAnchor, constant: 4)
+            )
+        }
+        
+        NSLayoutConstraint.activate(constraints)
         stackView.addArrangedSubview(containerView)
+    }
+    
+    // ✅ NEW: Format Deadline with Urgency
+    func formatDeadline(_ dueString: String) -> (String, String, UIColor) {
+        // Parse ISO8601 date
+        let formatter = ISO8601DateFormatter()
+        guard let deadline = formatter.date(from: dueString) else {
+            return (dueString, "📅", .label)
+        }
+        
+        // Format for display
+        let displayFormatter = DateFormatter()
+        displayFormatter.dateFormat = "MMM dd, HH:mm"
+        let formattedDate = displayFormatter.string(from: deadline)
+        
+        // Get urgency level
+        let urgency = getUrgencyLevel(for: deadline)
+        
+        return (formattedDate, urgency.emoji, urgency.textColor)
+    }
+    
+    // ✅ NEW: Get Urgency Level
+    func getUrgencyLevel(for deadline: Date) -> (emoji: String, textColor: UIColor) {
+        let hoursRemaining = Calendar.current.dateComponents(
+            [.hour],
+            from: Date(),
+            to: deadline
+        ).hour ?? 0
+        
+        if hoursRemaining < 0 {
+            return ("", .systemRed)      // Overdue
+        } else if hoursRemaining < 4 {
+            return ("", .systemOrange)   // Urgent
+        } else if hoursRemaining < 24 {
+            return ("", .systemYellow)   // Soon
+        } else {
+            return ("", .label)          // Normal
+        }
+    }
+    
+    // ✅ NEW: Get Time Remaining
+    func getTimeRemaining(from dueString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        guard let deadline = formatter.date(from: dueString) else {
+            return "N/A"
+        }
+        
+        let now = Date()
+        let components = Calendar.current.dateComponents(
+            [.day, .hour, .minute],
+            from: now,
+            to: deadline
+        )
+        
+        if let days = components.day, days > 0 {
+            return "\(days) day\(days == 1 ? "" : "s") left"
+        } else if let hours = components.hour, hours > 0 {
+            return "\(hours) hour\(hours == 1 ? "" : "s") left"
+        } else if let minutes = components.minute, minutes > 0 {
+            return "\(minutes) minute\(minutes == 1 ? "" : "s") left"
+        } else {
+            return "Overdue"
+        }
+    }
+    
+    // ✅ NEW: Check if Overdue
+    func isOverdue(_ dueString: String) -> Bool {
+        let formatter = ISO8601DateFormatter()
+        guard let deadline = formatter.date(from: dueString) else {
+            return false
+        }
+        return Date() > deadline
     }
     
     @objc func ticketTapped(_ sender: UITapGestureRecognizer) {
@@ -332,7 +417,6 @@ class TicketViewList: UIViewController {
         navigationController?.pushViewController(editVC, animated: true)
     }
     
-    // MARK: - Helper Functions (No functional changes)
     func getStatusColor(for status: String) -> UIColor {
         switch status.lowercased() {
         case "complete":
@@ -346,7 +430,6 @@ class TicketViewList: UIViewController {
         }
     }
     
-    // MARK: - Cloudinary Image Loader (No functional changes)
     func loadImageFromCloudinary(publicIDOrURL: String?, into imageView: UIImageView) {
         let defaultImageURL = "https://res.cloudinary.com/dtthzideh/image/upload/v1766927687/Copilot_20251225_112235_zuxqkf.png"
         guard let path = publicIDOrURL, !path.isEmpty else {
@@ -354,11 +437,9 @@ class TicketViewList: UIViewController {
             return
         }
         
-        // If it's already a full URL, use it
         if path.starts(with: "http") {
             loadRemoteImage(from: path, into: imageView)
         } else {
-            // Generate Cloudinary URL from public ID
             if let url = cloudinary.createUrl().generate(path) {
                 loadRemoteImage(from: url, into: imageView)
             }
@@ -380,15 +461,4 @@ class TicketViewList: UIViewController {
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
     }
-}
-
-// MARK: - Ticket model (No changes)
-struct Ticket: Codable {
-    let ticket_id: Int
-    let due: String
-    let description: String
-    var status: String
-    let campus: String
-    let image_url: String?
-    let priority: String?
 }
