@@ -118,7 +118,7 @@ class FilterModalViewController: UIViewController {
     }
 
     @objc private func applyButtonTapped() {
-        // Status mapping
+        // Status mapping - FIXED
         var statusValue: String? = nil
         switch statusSegment.selectedSegmentIndex {
         case 0: statusValue = "complete"
@@ -127,20 +127,20 @@ class FilterModalViewController: UIViewController {
         default: statusValue = nil
         }
 
-        // Priority mapping
+        // Priority mapping - FIXED: Now correctly maps to priority values (Capitalized)
         var priorityValue: String? = nil
         switch prioritySegment.selectedSegmentIndex {
-        case 0: priorityValue = "in progress"   // High → In Progress
-        case 1: priorityValue = "assigned"      // Medium → Assigned
-        case 2: priorityValue = "complete"       // Low → Complete
+        case 0: priorityValue = "High"      // High → High
+        case 1: priorityValue = "Medium"    // Medium → Medium
+        case 2: priorityValue = "Low"       // Low → Low
         default: priorityValue = nil
         }
 
-        // Deadline
+        // Deadline mapping - FIXED
         var deadlineValue: String? = nil
         switch deadlineSegment.selectedSegmentIndex {
-        case 0: deadlineValue = "nearest"
-        case 1: deadlineValue = "furthest"
+        case 0: deadlineValue = "nearest"   // Earliest/Nearest first
+        case 1: deadlineValue = "furthest"  // Latest/Furthest first
         default: deadlineValue = nil
         }
 
@@ -149,4 +149,3 @@ class FilterModalViewController: UIViewController {
         }
     }
 }
-

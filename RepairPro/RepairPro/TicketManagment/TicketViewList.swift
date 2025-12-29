@@ -134,6 +134,7 @@ class TicketViewList: UIViewController {
         tickets.forEach { createTicketView(for: $0) }
     }
     
+    // ✅ FIXED: Apply Filters Method
     func applyFilters(status: String?, priority: String?, deadline: String?) {
         currentStatusFilter = status
         currentPriorityFilter = priority
@@ -141,34 +142,52 @@ class TicketViewList: UIViewController {
         applyCurrentFilters()
     }
 
+    // ✅ FIXED: Apply Current Filters Method
     func applyCurrentFilters() {
+        // Start with all tickets (excluding pending)
         filteredTickets = ticketsArray
         
+        // ✅ FILTER BY STATUS (if selected)
         if let status = currentStatusFilter {
-            filteredTickets = filteredTickets.filter { $0.status.lowercased() == status.lowercased() }
+            filteredTickets = filteredTickets.filter {
+                $0.status.lowercased() == status.lowercased()
+            }
+            print("🔍 Filtered by status '\(status)': \(filteredTickets.count) tickets")
         }
         
+        // ✅ FILTER BY PRIORITY (if selected) - FIXED!
         if let priority = currentPriorityFilter {
-            switch priority.lowercased() {
-            case "high":
-                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "in progress" }
-            case "medium":
-                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "assigned" }
-            case "low":
-                filteredTickets = filteredTickets.filter { $0.status.lowercased() == "complete" }
-            default: break
+            filteredTickets = filteredTickets.filter { ticket in
+                guard let ticketPriority = ticket.priority else { return false }
+                return ticketPriority.lowercased() == priority.lowercased()
             }
+            print("🔍 Filtered by priority '\(priority)': \(filteredTickets.count) tickets")
         }
         
+        // ✅ SORT BY DEADLINE (if selected)
         if let deadline = currentDeadlineFilter {
+            let formatter = ISO8601DateFormatter()
+            
             filteredTickets.sort { first, second in
-                guard let date1 = ISO8601DateFormatter().date(from: first.due),
-                      let date2 = ISO8601DateFormatter().date(from: second.due) else { return false }
-                return deadline.lowercased() == "nearest" ? date1 < date2 : date2 < date1
+                guard let date1 = formatter.date(from: first.due),
+                      let date2 = formatter.date(from: second.due) else {
+                    return false
+                }
+                
+                // "nearest" = earliest first (ascending)
+                // "furthest" = latest first (descending)
+                if deadline.lowercased() == "nearest" {
+                    return date1 < date2  // Earliest first
+                } else {
+                    return date1 > date2  // Latest first
+                }
             }
+            print("🔍 Sorted by deadline '\(deadline)': \(filteredTickets.count) tickets")
         }
         
+        // Display the filtered and sorted tickets
         displayTickets(filteredTickets)
+        print("✅ Displaying \(filteredTickets.count) tickets after filters applied")
     }
 
     // MARK: - Create Ticket View (UPDATED with formatted deadline)
@@ -363,13 +382,13 @@ class TicketViewList: UIViewController {
         ).hour ?? 0
         
         if hoursRemaining < 0 {
-            return ("", .systemRed)      // Overdue
+            return ("🔴", .systemRed)      // Overdue
         } else if hoursRemaining < 4 {
-            return ("", .systemOrange)   // Urgent
+            return ("🟠", .systemOrange)   // Urgent
         } else if hoursRemaining < 24 {
-            return ("", .systemYellow)   // Soon
+            return ("🟡", .systemYellow)   // Soon
         } else {
-            return ("", .label)          // Normal
+            return ("🟢", .label)          // Normal
         }
     }
     
