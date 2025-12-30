@@ -1,6 +1,7 @@
 //
 //  FeedbackDetailViewController.swift
-//  Detailed view of feedback with admin response capability
+//  Fully programmatic - NO STORYBOARD NEEDED
+//  Just tap a feedback card and this opens automatically!
 //
 
 import UIKit
@@ -9,85 +10,50 @@ import Cloudinary
 
 class FeedbackDetailViewController: UIViewController {
     
-    var feedback: Feedback!
+    // MARK: - Properties
+    var feedback: Feedback?
     let db = Firestore.firestore()
     let cloudinary = CLDCloudinary(configuration: CLDConfiguration(cloudName: "dtthzideh"))
     
-    // UI Elements
-    private let scrollView = UIScrollView()
-    private let contentView = UIView()
-    private let headerView = UIView()
-    private let feedbackIDLabel = UILabel()
-    private let categoryLabel = UILabel()
-    private let statusBadge = UIView()
-    private let statusLabel = UILabel()
-    private let starStack = UIStackView()
-    private let titleLabel = UILabel()
-    private let descriptionLabel = UILabel()
-    private let userInfoView = UIView()
-    private let userNameLabel = UILabel()
-    private let userEmailLabel = UILabel()
-    private let dateLabel = UILabel()
-    private let campusLabel = UILabel()
-    private let priorityLabel = UILabel()
-    private let imagesCollectionView: UICollectionView
-    private let responseSection = UIView()
-    private let responseTitleLabel = UILabel()
-    private let responseTextView = UITextView()
-    private let responseButton = UIButton(type: .system)
-    private let adminResponseView = UIView()
-    private let adminResponseLabel = UILabel()
-    private let responseDateLabel = UILabel()
-    
-    // Image data
     private var imageURLs: [String] = []
     
-    init() {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        layout.itemSize = CGSize(width: 120, height: 120)
-        layout.minimumLineSpacing = 12
-        self.imagesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        super.init(nibName: nil, bundle: nil)
-    }
+    private let scrollView: UIScrollView = {
+        let sv = UIScrollView()
+        sv.backgroundColor = .white
+        sv.translatesAutoresizingMaskIntoConstraints = false
+        return sv
+    }()
     
-    required init?(coder: NSCoder) {
-        let layout = UICollectionViewFlowLayout()
-        layout.scrollDirection = .horizontal
-        self.imagesCollectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
-        super.init(coder: coder)
-    }
+    private let contentStackView: UIStackView = {
+        let stack = UIStackView()
+        stack.axis = .vertical
+        stack.spacing = 16
+        stack.alignment = .fill
+        stack.distribution = .fill
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        return stack
+    }()
+    
+    // Placeholder images from Supabase
+    private let placeholderImageURLs = [
+        "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
+        "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
+        "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
+    ]
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        title = "Feedback Details"
-        view.backgroundColor = .systemGroupedBackground
+        title = "Ticket Details"
+        view.backgroundColor = .white
         
-        setupScrollView()
-        setupHeaderView()
-        setupContentSections()
-        setupImagesCollectionView()
-        setupResponseSection()
-        populateData()
-        
-        // Add edit/update button for admins
-        let moreButton = UIBarButtonItem(
-            image: UIImage(systemName: "ellipsis.circle"),
-            style: .plain,
-            target: self,
-            action: #selector(showActionMenu)
-        )
-        navigationItem.rightBarButtonItem = moreButton
+        setupUI()
+        displayFeedbackDetails()
     }
     
-    // MARK: - Setup UI
-    func setupScrollView() {
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.translatesAutoresizingMaskIntoConstraints = false
-        
+    func setupUI() {
         view.addSubview(scrollView)
-        scrollView.addSubview(contentView)
+        scrollView.addSubview(contentStackView)
         
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
@@ -95,564 +61,495 @@ class FeedbackDetailViewController: UIViewController {
             scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
             
-            contentView.topAnchor.constraint(equalTo: scrollView.topAnchor),
-            contentView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor),
-            contentView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor),
-            contentView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
-            contentView.widthAnchor.constraint(equalTo: scrollView.widthAnchor)
+            contentStackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 20),
+            contentStackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
+            contentStackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
+            contentStackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -20),
+            contentStackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32)
         ])
     }
     
-    func setupHeaderView() {
-        headerView.backgroundColor = .secondarySystemGroupedBackground
-        headerView.layer.cornerRadius = 16
-        headerView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(headerView)
-        
-        // Feedback ID
-        feedbackIDLabel.font = .systemFont(ofSize: 24, weight: .bold)
-        feedbackIDLabel.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(feedbackIDLabel)
-        
-        // Category
-        categoryLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        categoryLabel.textColor = .secondaryLabel
-        categoryLabel.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(categoryLabel)
-        
-        // Status Badge
-        statusBadge.layer.cornerRadius = 12
-        statusBadge.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(statusBadge)
-        
-        statusLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-        statusLabel.translatesAutoresizingMaskIntoConstraints = false
-        statusBadge.addSubview(statusLabel)
-        
-        // Star Rating
-        starStack.axis = .horizontal
-        starStack.spacing = 4
-        starStack.translatesAutoresizingMaskIntoConstraints = false
-        headerView.addSubview(starStack)
-        
-        NSLayoutConstraint.activate([
-            headerView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 20),
-            headerView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            headerView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            
-            feedbackIDLabel.topAnchor.constraint(equalTo: headerView.topAnchor, constant: 20),
-            feedbackIDLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
-            
-            statusBadge.trailingAnchor.constraint(equalTo: headerView.trailingAnchor, constant: -20),
-            statusBadge.centerYAnchor.constraint(equalTo: feedbackIDLabel.centerYAnchor),
-            
-            statusLabel.leadingAnchor.constraint(equalTo: statusBadge.leadingAnchor, constant: 12),
-            statusLabel.trailingAnchor.constraint(equalTo: statusBadge.trailingAnchor, constant: -12),
-            statusLabel.topAnchor.constraint(equalTo: statusBadge.topAnchor, constant: 8),
-            statusLabel.bottomAnchor.constraint(equalTo: statusBadge.bottomAnchor, constant: -8),
-            
-            categoryLabel.topAnchor.constraint(equalTo: feedbackIDLabel.bottomAnchor, constant: 8),
-            categoryLabel.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
-            
-            starStack.topAnchor.constraint(equalTo: categoryLabel.bottomAnchor, constant: 12),
-            starStack.leadingAnchor.constraint(equalTo: headerView.leadingAnchor, constant: 20),
-            starStack.bottomAnchor.constraint(equalTo: headerView.bottomAnchor, constant: -20)
-        ])
-    }
-    
-    func setupContentSections() {
-        // Title Section
-        let titleContainer = createSectionContainer()
-        titleLabel.font = .systemFont(ofSize: 20, weight: .semibold)
-        titleLabel.numberOfLines = 0
-        titleLabel.translatesAutoresizingMaskIntoConstraints = false
-        titleContainer.addSubview(titleLabel)
-        
-        NSLayoutConstraint.activate([
-            titleLabel.topAnchor.constraint(equalTo: titleContainer.topAnchor, constant: 16),
-            titleLabel.leadingAnchor.constraint(equalTo: titleContainer.leadingAnchor, constant: 20),
-            titleLabel.trailingAnchor.constraint(equalTo: titleContainer.trailingAnchor, constant: -20),
-            titleLabel.bottomAnchor.constraint(equalTo: titleContainer.bottomAnchor, constant: -16)
-        ])
-        
-        contentView.addSubview(titleContainer)
-        
-        // Description Section
-        let descContainer = createSectionContainer()
-        let descTitle = UILabel()
-        descTitle.text = "Description"
-        descTitle.font = .systemFont(ofSize: 16, weight: .semibold)
-        descTitle.translatesAutoresizingMaskIntoConstraints = false
-        descContainer.addSubview(descTitle)
-        
-        descriptionLabel.font = .systemFont(ofSize: 15)
-        descriptionLabel.textColor = .label
-        descriptionLabel.numberOfLines = 0
-        descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
-        descContainer.addSubview(descriptionLabel)
-        
-        NSLayoutConstraint.activate([
-            descTitle.topAnchor.constraint(equalTo: descContainer.topAnchor, constant: 16),
-            descTitle.leadingAnchor.constraint(equalTo: descContainer.leadingAnchor, constant: 20),
-            descTitle.trailingAnchor.constraint(equalTo: descContainer.trailingAnchor, constant: -20),
-            
-            descriptionLabel.topAnchor.constraint(equalTo: descTitle.bottomAnchor, constant: 12),
-            descriptionLabel.leadingAnchor.constraint(equalTo: descContainer.leadingAnchor, constant: 20),
-            descriptionLabel.trailingAnchor.constraint(equalTo: descContainer.trailingAnchor, constant: -20),
-            descriptionLabel.bottomAnchor.constraint(equalTo: descContainer.bottomAnchor, constant: -16)
-        ])
-        
-        contentView.addSubview(descContainer)
-        
-        // User Info Section
-        userInfoView.backgroundColor = .secondarySystemGroupedBackground
-        userInfoView.layer.cornerRadius = 16
-        userInfoView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(userInfoView)
-        
-        let userIcon = UILabel()
-        userIcon.text = "👤"
-        userIcon.font = .systemFont(ofSize: 24)
-        userIcon.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(userIcon)
-        
-        userNameLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        userNameLabel.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(userNameLabel)
-        
-        userEmailLabel.font = .systemFont(ofSize: 14)
-        userEmailLabel.textColor = .secondaryLabel
-        userEmailLabel.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(userEmailLabel)
-        
-        dateLabel.font = .systemFont(ofSize: 13)
-        dateLabel.textColor = .systemGray
-        dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(dateLabel)
-        
-        campusLabel.font = .systemFont(ofSize: 14)
-        campusLabel.textColor = .secondaryLabel
-        campusLabel.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(campusLabel)
-        
-        priorityLabel.font = .systemFont(ofSize: 14, weight: .medium)
-        priorityLabel.translatesAutoresizingMaskIntoConstraints = false
-        userInfoView.addSubview(priorityLabel)
-        
-        NSLayoutConstraint.activate([
-            userIcon.leadingAnchor.constraint(equalTo: userInfoView.leadingAnchor, constant: 20),
-            userIcon.topAnchor.constraint(equalTo: userInfoView.topAnchor, constant: 16),
-            
-            userNameLabel.leadingAnchor.constraint(equalTo: userIcon.trailingAnchor, constant: 12),
-            userNameLabel.topAnchor.constraint(equalTo: userInfoView.topAnchor, constant: 16),
-            userNameLabel.trailingAnchor.constraint(equalTo: userInfoView.trailingAnchor, constant: -20),
-            
-            userEmailLabel.leadingAnchor.constraint(equalTo: userIcon.trailingAnchor, constant: 12),
-            userEmailLabel.topAnchor.constraint(equalTo: userNameLabel.bottomAnchor, constant: 4),
-            userEmailLabel.trailingAnchor.constraint(equalTo: userInfoView.trailingAnchor, constant: -20),
-            
-            dateLabel.leadingAnchor.constraint(equalTo: userInfoView.leadingAnchor, constant: 20),
-            dateLabel.topAnchor.constraint(equalTo: userEmailLabel.bottomAnchor, constant: 12),
-            
-            campusLabel.leadingAnchor.constraint(equalTo: userInfoView.leadingAnchor, constant: 20),
-            campusLabel.topAnchor.constraint(equalTo: dateLabel.bottomAnchor, constant: 8),
-            
-            priorityLabel.leadingAnchor.constraint(equalTo: userInfoView.leadingAnchor, constant: 20),
-            priorityLabel.topAnchor.constraint(equalTo: campusLabel.bottomAnchor, constant: 8),
-            priorityLabel.bottomAnchor.constraint(equalTo: userInfoView.bottomAnchor, constant: -16)
-        ])
-        
-        // Layout containers
-        NSLayoutConstraint.activate([
-            titleContainer.topAnchor.constraint(equalTo: headerView.bottomAnchor, constant: 20),
-            titleContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            titleContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            
-            descContainer.topAnchor.constraint(equalTo: titleContainer.bottomAnchor, constant: 16),
-            descContainer.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            descContainer.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            
-            userInfoView.topAnchor.constraint(equalTo: descContainer.bottomAnchor, constant: 16),
-            userInfoView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            userInfoView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16)
-        ])
-    }
-    
-    func setupImagesCollectionView() {
-        imagesCollectionView.backgroundColor = .clear
-        imagesCollectionView.showsHorizontalScrollIndicator = false
-        imagesCollectionView.delegate = self
-        imagesCollectionView.dataSource = self
-        imagesCollectionView.register(FeedbackImageCell.self, forCellWithReuseIdentifier: "ImageCell")
-        imagesCollectionView.translatesAutoresizingMaskIntoConstraints = false
-        
-        contentView.addSubview(imagesCollectionView)
-        
-        NSLayoutConstraint.activate([
-            imagesCollectionView.topAnchor.constraint(equalTo: userInfoView.bottomAnchor, constant: 16),
-            imagesCollectionView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            imagesCollectionView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            imagesCollectionView.heightAnchor.constraint(equalToConstant: 120)
-        ])
-    }
-    
-    func setupResponseSection() {
-        // Admin Response Display (if exists)
-        adminResponseView.backgroundColor = .systemGreen.withAlphaComponent(0.1)
-        adminResponseView.layer.cornerRadius = 16
-        adminResponseView.layer.borderWidth = 1
-        adminResponseView.layer.borderColor = UIColor.systemGreen.withAlphaComponent(0.3).cgColor
-        adminResponseView.translatesAutoresizingMaskIntoConstraints = false
-        adminResponseView.isHidden = true
-        contentView.addSubview(adminResponseView)
-        
-        let responseTitle = UILabel()
-        responseTitle.text = "✓ Admin Response"
-        responseTitle.font = .systemFont(ofSize: 16, weight: .semibold)
-        responseTitle.textColor = .systemGreen
-        responseTitle.translatesAutoresizingMaskIntoConstraints = false
-        adminResponseView.addSubview(responseTitle)
-        
-        adminResponseLabel.font = .systemFont(ofSize: 15)
-        adminResponseLabel.textColor = .label
-        adminResponseLabel.numberOfLines = 0
-        adminResponseLabel.translatesAutoresizingMaskIntoConstraints = false
-        adminResponseView.addSubview(adminResponseLabel)
-        
-        responseDateLabel.font = .systemFont(ofSize: 12)
-        responseDateLabel.textColor = .systemGray
-        responseDateLabel.translatesAutoresizingMaskIntoConstraints = false
-        adminResponseView.addSubview(responseDateLabel)
-        
-        NSLayoutConstraint.activate([
-            responseTitle.topAnchor.constraint(equalTo: adminResponseView.topAnchor, constant: 16),
-            responseTitle.leadingAnchor.constraint(equalTo: adminResponseView.leadingAnchor, constant: 20),
-            responseTitle.trailingAnchor.constraint(equalTo: adminResponseView.trailingAnchor, constant: -20),
-            
-            adminResponseLabel.topAnchor.constraint(equalTo: responseTitle.bottomAnchor, constant: 12),
-            adminResponseLabel.leadingAnchor.constraint(equalTo: adminResponseView.leadingAnchor, constant: 20),
-            adminResponseLabel.trailingAnchor.constraint(equalTo: adminResponseView.trailingAnchor, constant: -20),
-            
-            responseDateLabel.topAnchor.constraint(equalTo: adminResponseLabel.bottomAnchor, constant: 12),
-            responseDateLabel.leadingAnchor.constraint(equalTo: adminResponseView.leadingAnchor, constant: 20),
-            responseDateLabel.bottomAnchor.constraint(equalTo: adminResponseView.bottomAnchor, constant: -16)
-        ])
-        
-        // Response Input Section
-        responseSection.backgroundColor = .secondarySystemGroupedBackground
-        responseSection.layer.cornerRadius = 16
-        responseSection.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(responseSection)
-        
-        responseTitleLabel.text = "Add Response"
-        responseTitleLabel.font = .systemFont(ofSize: 16, weight: .semibold)
-        responseTitleLabel.translatesAutoresizingMaskIntoConstraints = false
-        responseSection.addSubview(responseTitleLabel)
-        
-        responseTextView.font = .systemFont(ofSize: 15)
-        responseTextView.layer.cornerRadius = 12
-        responseTextView.layer.borderWidth = 1
-        responseTextView.layer.borderColor = UIColor.systemGray4.cgColor
-        responseTextView.backgroundColor = .tertiarySystemGroupedBackground
-        responseTextView.translatesAutoresizingMaskIntoConstraints = false
-        responseSection.addSubview(responseTextView)
-        
-        responseButton.setTitle("Submit Response", for: .normal)
-        responseButton.titleLabel?.font = .systemFont(ofSize: 16, weight: .semibold)
-        responseButton.backgroundColor = .systemBlue
-        responseButton.setTitleColor(.white, for: .normal)
-        responseButton.layer.cornerRadius = 12
-        responseButton.translatesAutoresizingMaskIntoConstraints = false
-        responseButton.addTarget(self, action: #selector(submitResponse), for: .touchUpInside)
-        responseSection.addSubview(responseButton)
-        
-        NSLayoutConstraint.activate([
-            adminResponseView.topAnchor.constraint(equalTo: imagesCollectionView.bottomAnchor, constant: 16),
-            adminResponseView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            adminResponseView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            
-            responseSection.topAnchor.constraint(equalTo: adminResponseView.bottomAnchor, constant: 16),
-            responseSection.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: 16),
-            responseSection.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
-            responseSection.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -20),
-            
-            responseTitleLabel.topAnchor.constraint(equalTo: responseSection.topAnchor, constant: 16),
-            responseTitleLabel.leadingAnchor.constraint(equalTo: responseSection.leadingAnchor, constant: 20),
-            responseTitleLabel.trailingAnchor.constraint(equalTo: responseSection.trailingAnchor, constant: -20),
-            
-            responseTextView.topAnchor.constraint(equalTo: responseTitleLabel.bottomAnchor, constant: 12),
-            responseTextView.leadingAnchor.constraint(equalTo: responseSection.leadingAnchor, constant: 20),
-            responseTextView.trailingAnchor.constraint(equalTo: responseSection.trailingAnchor, constant: -20),
-            responseTextView.heightAnchor.constraint(equalToConstant: 120),
-            
-            responseButton.topAnchor.constraint(equalTo: responseTextView.bottomAnchor, constant: 16),
-            responseButton.leadingAnchor.constraint(equalTo: responseSection.leadingAnchor, constant: 20),
-            responseButton.trailingAnchor.constraint(equalTo: responseSection.trailingAnchor, constant: -20),
-            responseButton.heightAnchor.constraint(equalToConstant: 50),
-            responseButton.bottomAnchor.constraint(equalTo: responseSection.bottomAnchor, constant: -16)
-        ])
-    }
-    
-    // MARK: - Populate Data
-    func populateData() {
+    func displayFeedbackDetails() {
         guard let feedback = feedback else { return }
         
-        feedbackIDLabel.text = "Feedback #\(feedback.feedback_id)"
-        categoryLabel.text = "\(feedback.categoryEmoji) \(feedback.category)"
+        // Clear existing views
+        contentStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
-        let statusColor = getStatusColor(for: feedback.status)
-        statusBadge.backgroundColor = statusColor.withAlphaComponent(0.2)
-        statusLabel.text = feedback.status
-        statusLabel.textColor = statusColor
+        // MARK: - Ticket ID Header with Priority Badge
+        let headerView = createTicketIDHeader(feedback: feedback)
+        contentStackView.addArrangedSubview(headerView)
         
-        // Star rating
-        for i in 1...5 {
-            let star = UILabel()
-            star.text = i <= feedback.rating ? "⭐" : "☆"
-            star.font = .systemFont(ofSize: 24)
-            starStack.addArrangedSubview(star)
-        }
+        // MARK: - Deadline
+        let deadlineView = createInfoRow(title: "Deadline:", value: feedback.formattedDate, valueColor: .label)
+        contentStackView.addArrangedSubview(deadlineView)
         
-        let ratingLabel = UILabel()
-        ratingLabel.text = "(\(feedback.rating)/5)"
-        ratingLabel.font = .systemFont(ofSize: 16, weight: .medium)
-        ratingLabel.textColor = .secondaryLabel
-        starStack.addArrangedSubview(ratingLabel)
+        // MARK: - Subject
+        let subjectView = createInfoRow(title: "Subject:", value: feedback.title, valueColor: UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1))
+        contentStackView.addArrangedSubview(subjectView)
         
-        titleLabel.text = feedback.title
-        descriptionLabel.text = feedback.description
+        // MARK: - Description
+        let descriptionView = createMultiLineSection(title: "Description", content: feedback.description)
+        contentStackView.addArrangedSubview(descriptionView)
         
-        userNameLabel.text = feedback.user_name
-        userEmailLabel.text = feedback.user_email ?? "No email provided"
-        dateLabel.text = "📅 \(feedback.formattedDate)"
+        // MARK: - Location
+        let locationValue = feedback.campus ?? "Not specified"
+        let locationView = createInfoRow(title: "Location:", value: locationValue, valueColor: UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1))
+        contentStackView.addArrangedSubview(locationView)
         
-        if let campus = feedback.campus {
-            campusLabel.text = "📍 Campus \(campus)"
-            campusLabel.isHidden = false
+        // MARK: - First Image
+        if let imageUrls = feedback.image_urls, !imageUrls.isEmpty {
+            imageURLs = imageUrls
+            let imageView1 = createImageSection(imageUrl: imageUrls[0], index: 0)
+            contentStackView.addArrangedSubview(imageView1)
         } else {
-            campusLabel.isHidden = true
+            // Use random placeholder image
+            let randomPlaceholder = placeholderImageURLs.randomElement() ?? placeholderImageURLs[0]
+            let placeholderView1 = createImageSection(imageUrl: randomPlaceholder, index: -1, isPlaceholder: true)
+            contentStackView.addArrangedSubview(placeholderView1)
         }
+        
+        // MARK: - Technician
+        let technicianView = createInfoRow(title: "Technician:", value: feedback.user_name, valueColor: .label)
+        contentStackView.addArrangedSubview(technicianView)
+        
+        // MARK: - Status
+        let statusView = createStatusSection(status: feedback.status)
+        contentStackView.addArrangedSubview(statusView)
+        
+        // MARK: - Notes
+        let notesContent = feedback.admin_response ?? "Switch changed."
+        let notesView = createMultiLineSection(title: "Notes", content: notesContent)
+        contentStackView.addArrangedSubview(notesView)
+        
+        // MARK: - Second Image
+        if let imageUrls = feedback.image_urls, imageUrls.count > 1 {
+            let imageView2 = createImageSection(imageUrl: imageUrls[1], index: 1, showLabel: false)
+            contentStackView.addArrangedSubview(imageView2)
+        } else {
+            // Use random placeholder image
+            let randomPlaceholder = placeholderImageURLs.randomElement() ?? placeholderImageURLs[1]
+            let placeholderView2 = createImageSection(imageUrl: randomPlaceholder, index: -1, showLabel: false, isPlaceholder: true)
+            contentStackView.addArrangedSubview(placeholderView2)
+        }
+        
+        // MARK: - Feedback/Rating
+        let feedbackText = "Happy with the result. The light flickering stopped."
+        let ratingView = createRatingSection(rating: feedback.safeRating, feedbackText: feedbackText)
+        contentStackView.addArrangedSubview(ratingView)
+    }
+    
+    // MARK: - Create UI Components
+    
+    func createTicketIDHeader(feedback: Feedback) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let ticketIDLabel = UILabel()
+        ticketIDLabel.text = "Ticket ID: \(feedback.feedback_id)"
+        ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        ticketIDLabel.textColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
+        ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(ticketIDLabel)
+        
+        NSLayoutConstraint.activate([
+            ticketIDLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            ticketIDLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            ticketIDLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
         
         if let priority = feedback.priority {
-            let color = feedback.priorityColor
-            priorityLabel.text = "⚡ \(priority) Priority"
-            priorityLabel.textColor = color
-            priorityLabel.isHidden = false
-        } else {
-            priorityLabel.isHidden = true
-        }
-        
-        // Images
-        if let urls = feedback.image_urls, !urls.isEmpty {
-            imageURLs = urls
-            imagesCollectionView.isHidden = false
-            imagesCollectionView.reloadData()
-        } else {
-            imagesCollectionView.isHidden = true
-        }
-        
-        // Admin response
-        if feedback.hasResponse {
-            adminResponseView.isHidden = false
-            adminResponseLabel.text = feedback.admin_response
+            let priorityBadge = createPriorityBadge(priority: priority)
+            priorityBadge.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(priorityBadge)
             
-            if let responseDate = feedback.response_date {
-                let formatter = ISO8601DateFormatter()
-                if let date = formatter.date(from: responseDate) {
-                    let displayFormatter = DateFormatter()
-                    displayFormatter.dateFormat = "MMM dd, yyyy 'at' HH:mm"
-                    responseDateLabel.text = "Responded: \(displayFormatter.string(from: date))"
-                }
+            NSLayoutConstraint.activate([
+                priorityBadge.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+                priorityBadge.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor)
+            ])
+        }
+        
+        return container
+    }
+    
+    func createInfoRow(title: String, value: String, valueColor: UIColor) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        // Create text field box
+        let textFieldBox = UIView()
+        textFieldBox.backgroundColor = .white
+        textFieldBox.layer.cornerRadius = 8
+        textFieldBox.layer.borderWidth = 1
+        textFieldBox.layer.borderColor = UIColor.systemGray4.cgColor
+        textFieldBox.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(textFieldBox)
+        
+        let valueLabel = UILabel()
+        valueLabel.text = value
+        valueLabel.font = .systemFont(ofSize: 14)
+        valueLabel.textColor = valueColor
+        valueLabel.numberOfLines = 0
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        textFieldBox.addSubview(valueLabel)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            textFieldBox.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            textFieldBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textFieldBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textFieldBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            
+            valueLabel.topAnchor.constraint(equalTo: textFieldBox.topAnchor, constant: 12),
+            valueLabel.leadingAnchor.constraint(equalTo: textFieldBox.leadingAnchor, constant: 12),
+            valueLabel.trailingAnchor.constraint(equalTo: textFieldBox.trailingAnchor, constant: -12),
+            valueLabel.bottomAnchor.constraint(equalTo: textFieldBox.bottomAnchor, constant: -12)
+        ])
+        
+        return container
+    }
+    
+    func createMultiLineSection(title: String, content: String) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let titleLabel = UILabel()
+        titleLabel.text = title
+        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        // Create text field box
+        let textFieldBox = UIView()
+        textFieldBox.backgroundColor = .white
+        textFieldBox.layer.cornerRadius = 8
+        textFieldBox.layer.borderWidth = 1
+        textFieldBox.layer.borderColor = UIColor.systemGray4.cgColor
+        textFieldBox.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(textFieldBox)
+        
+        let contentLabel = UILabel()
+        contentLabel.text = content
+        contentLabel.font = .systemFont(ofSize: 14)
+        contentLabel.textColor = .secondaryLabel
+        contentLabel.numberOfLines = 0
+        contentLabel.translatesAutoresizingMaskIntoConstraints = false
+        textFieldBox.addSubview(contentLabel)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            textFieldBox.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            textFieldBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textFieldBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textFieldBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            
+            contentLabel.topAnchor.constraint(equalTo: textFieldBox.topAnchor, constant: 12),
+            contentLabel.leadingAnchor.constraint(equalTo: textFieldBox.leadingAnchor, constant: 12),
+            contentLabel.trailingAnchor.constraint(equalTo: textFieldBox.trailingAnchor, constant: -12),
+            contentLabel.bottomAnchor.constraint(equalTo: textFieldBox.bottomAnchor, constant: -12)
+        ])
+        
+        return container
+    }
+    
+    func createImageSection(imageUrl: String, index: Int, showLabel: Bool = true, isPlaceholder: Bool = false) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        var topAnchor: NSLayoutYAxisAnchor = container.topAnchor
+        var topOffset: CGFloat = 0
+        
+        if showLabel {
+            let titleLabel = UILabel()
+            titleLabel.text = "Image attached:"
+            titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+            titleLabel.textColor = .label
+            titleLabel.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(titleLabel)
+            
+            NSLayoutConstraint.activate([
+                titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+                titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+                titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor)
+            ])
+            
+            topAnchor = titleLabel.bottomAnchor
+            topOffset = 8
+        }
+        
+        let imageView = UIImageView()
+        imageView.contentMode = .scaleAspectFill
+        imageView.clipsToBounds = true
+        imageView.layer.cornerRadius = 8
+        imageView.backgroundColor = .systemGray6
+        imageView.translatesAutoresizingMaskIntoConstraints = false
+        imageView.isUserInteractionEnabled = !isPlaceholder // Only allow tap on real images
+        imageView.tag = index
+        container.addSubview(imageView)
+        
+        let loadingIndicator = UIActivityIndicatorView(style: .medium)
+        loadingIndicator.startAnimating()
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        imageView.addSubview(loadingIndicator)
+        
+        NSLayoutConstraint.activate([
+            loadingIndicator.centerXAnchor.constraint(equalTo: imageView.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: imageView.centerYAnchor)
+        ])
+        
+        // Only add tap gesture for real images, not placeholders
+        if !isPlaceholder {
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(imageTapped(_:)))
+            imageView.addGestureRecognizer(tapGesture)
+        }
+        
+        loadImage(from: imageUrl, into: imageView) {
+            loadingIndicator.stopAnimating()
+            loadingIndicator.removeFromSuperview()
+        }
+        
+        NSLayoutConstraint.activate([
+            imageView.topAnchor.constraint(equalTo: topAnchor, constant: topOffset),
+            imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            imageView.heightAnchor.constraint(equalToConstant: 200),
+            imageView.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        return container
+    }
+    
+    func createStatusSection(status: String) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "Status:"
+        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        let statusBadge = createStatusBadge(status: status)
+        statusBadge.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(statusBadge)
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            statusBadge.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            statusBadge.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            statusBadge.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        return container
+    }
+    
+    func createRatingSection(rating: Int, feedbackText: String) -> UIView {
+        let container = UIView()
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let titleLabel = UILabel()
+        titleLabel.text = "Feedback:"
+        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        // Create text field box for feedback text
+        let textFieldBox = UIView()
+        textFieldBox.backgroundColor = .white
+        textFieldBox.layer.cornerRadius = 8
+        textFieldBox.layer.borderWidth = 1
+        textFieldBox.layer.borderColor = UIColor.systemGray4.cgColor
+        textFieldBox.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(textFieldBox)
+        
+        let feedbackLabel = UILabel()
+        feedbackLabel.text = feedbackText
+        feedbackLabel.font = .systemFont(ofSize: 13)
+        feedbackLabel.textColor = .secondaryLabel
+        feedbackLabel.numberOfLines = 0
+        feedbackLabel.translatesAutoresizingMaskIntoConstraints = false
+        textFieldBox.addSubview(feedbackLabel)
+        
+        let starStack = UIStackView()
+        starStack.axis = .horizontal
+        starStack.spacing = 8
+        starStack.distribution = .fillEqually
+        starStack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(starStack)
+        
+        for i in 1...5 {
+            let starImageView = UIImageView()
+            starImageView.contentMode = .scaleAspectFit
+            starImageView.tintColor = UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1)
+            
+            if i <= rating {
+                starImageView.image = UIImage(systemName: "star.fill")
+            } else {
+                starImageView.image = UIImage(systemName: "star")
             }
             
-            responseSection.isHidden = true
+            starImageView.translatesAutoresizingMaskIntoConstraints = false
+            starImageView.widthAnchor.constraint(equalToConstant: 32).isActive = true
+            starImageView.heightAnchor.constraint(equalToConstant: 32).isActive = true
+            
+            starStack.addArrangedSubview(starImageView)
+        }
+        
+        NSLayoutConstraint.activate([
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            textFieldBox.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            textFieldBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textFieldBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            feedbackLabel.topAnchor.constraint(equalTo: textFieldBox.topAnchor, constant: 12),
+            feedbackLabel.leadingAnchor.constraint(equalTo: textFieldBox.leadingAnchor, constant: 12),
+            feedbackLabel.trailingAnchor.constraint(equalTo: textFieldBox.trailingAnchor, constant: -12),
+            feedbackLabel.bottomAnchor.constraint(equalTo: textFieldBox.bottomAnchor, constant: -12),
+            
+            starStack.topAnchor.constraint(equalTo: textFieldBox.bottomAnchor, constant: 12),
+            starStack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            starStack.widthAnchor.constraint(equalToConstant: 200),
+            starStack.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+        ])
+        
+        return container
+    }
+    
+    func createPriorityBadge(priority: String) -> UIView {
+        let container = UIView()
+        container.backgroundColor = .systemRed
+        container.layer.cornerRadius = 12
+        container.translatesAutoresizingMaskIntoConstraints = false
+        
+        let iconLabel = UILabel()
+        iconLabel.text = "!"
+        iconLabel.font = .systemFont(ofSize: 14, weight: .bold)
+        iconLabel.textColor = .white
+        iconLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(iconLabel)
+        
+        let priorityLabel = UILabel()
+        priorityLabel.text = "\(priority)-Priority"
+        priorityLabel.font = .systemFont(ofSize: 11, weight: .bold)
+        priorityLabel.textColor = .white
+        priorityLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(priorityLabel)
+        
+        NSLayoutConstraint.activate([
+            iconLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 8),
+            iconLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            iconLabel.topAnchor.constraint(equalTo: container.topAnchor, constant: 6),
+            iconLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -6),
+            
+            priorityLabel.leadingAnchor.constraint(equalTo: iconLabel.trailingAnchor, constant: 4),
+            priorityLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -8),
+            priorityLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+        
+        return container
+    }
+    
+    func createStatusBadge(status: String) -> UIView {
+        let badge = UIView()
+        
+        var bgColor: UIColor
+        var textColor: UIColor
+        
+        let lowercased = status.lowercased()
+        if lowercased.contains("complete") || lowercased.contains("resolve") {
+            bgColor = UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 0.15)
+            textColor = UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 1)
+        } else if lowercased.contains("progress") {
+            bgColor = UIColor(red: 255/255, green: 149/255, blue: 0/255, alpha: 0.15)
+            textColor = UIColor(red: 255/255, green: 149/255, blue: 0/255, alpha: 1)
         } else {
-            adminResponseView.isHidden = true
-            responseSection.isHidden = false
+            bgColor = UIColor.systemGray.withAlphaComponent(0.15)
+            textColor = .systemGray
+        }
+        
+        badge.backgroundColor = bgColor
+        badge.layer.cornerRadius = 4
+        badge.translatesAutoresizingMaskIntoConstraints = false
+        
+        let label = UILabel()
+        label.text = status
+        label.font = .systemFont(ofSize: 13, weight: .semibold)
+        label.textColor = textColor
+        label.translatesAutoresizingMaskIntoConstraints = false
+        badge.addSubview(label)
+        
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: badge.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: badge.trailingAnchor, constant: -10),
+            label.topAnchor.constraint(equalTo: badge.topAnchor, constant: 6),
+            label.bottomAnchor.constraint(equalTo: badge.bottomAnchor, constant: -6)
+        ])
+        
+        return badge
+    }
+    
+    // MARK: - Image Loading
+    
+    func loadImage(from urlString: String, into imageView: UIImageView, completion: @escaping () -> Void) {
+        if urlString.starts(with: "http") {
+            loadRemoteImage(from: urlString, into: imageView, completion: completion)
+        } else {
+            if let url = cloudinary.createUrl().generate(urlString) {
+                loadRemoteImage(from: url, into: imageView, completion: completion)
+            } else {
+                completion()
+            }
         }
     }
     
-    // MARK: - Actions
-    @objc func showActionMenu() {
-        let alert = UIAlertController(title: "Actions", message: nil, preferredStyle: .actionSheet)
-        
-        alert.addAction(UIAlertAction(title: "Change Status", style: .default) { [weak self] _ in
-            self?.showStatusPicker()
-        })
-        
-        alert.addAction(UIAlertAction(title: "Set Priority", style: .default) { [weak self] _ in
-            self?.showPriorityPicker()
-        })
-        
-        if !feedback.hasResponse {
-            alert.addAction(UIAlertAction(title: "Quick Responses", style: .default) { [weak self] _ in
-                self?.showQuickResponses()
-            })
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        
-        present(alert, animated: true)
-    }
-    
-    func showStatusPicker() {
-        let alert = UIAlertController(title: "Change Status", message: nil, preferredStyle: .actionSheet)
-        
-        let statuses = ["Pending", "Reviewed", "Resolved", "Closed"]
-        for status in statuses {
-            alert.addAction(UIAlertAction(title: status, style: .default) { [weak self] _ in
-                self?.updateStatus(status)
-            })
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
-    
-    func showPriorityPicker() {
-        let alert = UIAlertController(title: "Set Priority", message: nil, preferredStyle: .actionSheet)
-        
-        let priorities = ["Low", "Medium", "High"]
-        for priority in priorities {
-            alert.addAction(UIAlertAction(title: priority, style: .default) { [weak self] _ in
-                self?.updatePriority(priority)
-            })
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
-    
-    func showQuickResponses() {
-        let alert = UIAlertController(title: "Quick Responses", message: nil, preferredStyle: .actionSheet)
-        
-        let responses = [
-            "Thank you for your feedback. We're looking into this.",
-            "We appreciate your suggestion and will consider it.",
-            "This issue has been resolved. Thank you for reporting.",
-            "We're working on this and will update you soon."
-        ]
-        
-        for response in responses {
-            alert.addAction(UIAlertAction(title: response, style: .default) { [weak self] _ in
-                self?.responseTextView.text = response
-            })
-        }
-        
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
-    }
-    
-    @objc func submitResponse() {
-        guard let responseText = responseTextView.text, !responseText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
-            showAlert(title: "Error", message: "Please enter a response.")
+    func loadRemoteImage(from urlString: String, into imageView: UIImageView, completion: @escaping () -> Void) {
+        guard let url = URL(string: urlString) else {
+            completion()
             return
         }
         
-        let formatter = ISO8601DateFormatter()
-        let now = formatter.string(from: Date())
-        
-        guard let feedbackID = feedback.id else { return }
-        
-        db.collection("Feedback").document(feedbackID).updateData([
-            "admin_response": responseText,
-            "response_date": now,
-            "status": "Reviewed"
-        ]) { [weak self] error in
-            if let error = error {
-                self?.showAlert(title: "Error", message: "Failed to submit response: \(error.localizedDescription)")
-            } else {
-                self?.showAlert(title: "Success", message: "Response submitted successfully!")
-                self?.responseTextView.text = ""
-                // Refresh data
-                self?.feedback.admin_response = responseText
-                self?.feedback.response_date = now
-                self?.feedback.status = "Reviewed"
-                self?.populateData()
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let image = UIImage(data: data) else {
+                DispatchQueue.main.async {
+                    completion()
+                }
+                return
             }
-        }
-    }
-    
-    func updateStatus(_ status: String) {
-        guard let feedbackID = feedback.id else { return }
-        
-        db.collection("Feedback").document(feedbackID).updateData([
-            "status": status
-        ]) { [weak self] error in
-            if let error = error {
-                self?.showAlert(title: "Error", message: error.localizedDescription)
-            } else {
-                self?.feedback.status = status
-                self?.populateData()
-                self?.showAlert(title: "Success", message: "Status updated to \(status)")
+            DispatchQueue.main.async {
+                imageView.image = image
+                completion()
             }
-        }
+        }.resume()
     }
     
-    func updatePriority(_ priority: String) {
-        guard let feedbackID = feedback.id else { return }
+    @objc func imageTapped(_ sender: UITapGestureRecognizer) {
+        guard let imageView = sender.view as? UIImageView else { return }
         
-        db.collection("Feedback").document(feedbackID).updateData([
-            "priority": priority
-        ]) { [weak self] error in
-            if let error = error {
-                self?.showAlert(title: "Error", message: error.localizedDescription)
-            } else {
-                self?.feedback.priority = priority
-                self?.populateData()
-                self?.showAlert(title: "Success", message: "Priority set to \(priority)")
-            }
+        if imageView.image != nil, imageView.tag < imageURLs.count {
+            let imageUrl = imageURLs[imageView.tag]
+            showFullScreenImage(imageUrl)
         }
-    }
-    
-    // MARK: - Helper Methods
-    func createSectionContainer() -> UIView {
-        let view = UIView()
-        view.backgroundColor = .secondarySystemGroupedBackground
-        view.layer.cornerRadius = 16
-        view.translatesAutoresizingMaskIntoConstraints = false
-        return view
-    }
-    
-    func getStatusColor(for status: String) -> UIColor {
-        switch status.lowercased() {
-        case "resolved":
-            return UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1)
-        case "reviewed":
-            return UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 1)
-        case "pending":
-            return UIColor(red: 255/255, green: 149/255, blue: 0/255, alpha: 1)
-        case "closed":
-            return UIColor(red: 142/255, green: 142/255, blue: 147/255, alpha: 1)
-        default:
-            return .systemGray
-        }
-    }
-    
-    func showAlert(title: String, message: String) {
-        let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
-        alert.addAction(UIAlertAction(title: "OK", style: .default))
-        present(alert, animated: true)
-    }
-}
-
-// MARK: - UICollectionView Delegate & DataSource
-extension FeedbackDetailViewController: UICollectionViewDelegate, UICollectionViewDataSource {
-    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
-        return imageURLs.count
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
-        let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "ImageCell", for: indexPath) as! FeedbackImageCell
-        let imageURL = imageURLs[indexPath.item]
-        cell.configure(with: imageURL, cloudinary: cloudinary)
-        return cell
-    }
-    
-    func collectionView(_ collectionView: UICollectionView, didSelectItemAt indexPath: IndexPath) {
-        // Show full-screen image viewer
-        let imageURL = imageURLs[indexPath.item]
-        showFullScreenImage(imageURL)
     }
     
     func showFullScreenImage(_ urlString: String) {
@@ -664,55 +561,6 @@ extension FeedbackDetailViewController: UICollectionViewDelegate, UICollectionVi
     }
 }
 
-// MARK: - Image Cell
-class FeedbackImageCell: UICollectionViewCell {
-    private let imageView = UIImageView()
-    
-    override init(frame: CGRect) {
-        super.init(frame: frame)
-        
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
-        imageView.layer.cornerRadius = 12
-        imageView.backgroundColor = .systemGray5
-        imageView.translatesAutoresizingMaskIntoConstraints = false
-        contentView.addSubview(imageView)
-        
-        NSLayoutConstraint.activate([
-            imageView.topAnchor.constraint(equalTo: contentView.topAnchor),
-            imageView.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: contentView.trailingAnchor),
-            imageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor)
-        ])
-    }
-    
-    required init?(coder: NSCoder) {
-        fatalError("init(coder:) has not been implemented")
-    }
-    
-    func configure(with urlString: String, cloudinary: CLDCloudinary) {
-        imageView.image = nil
-        
-        if urlString.starts(with: "http") {
-            loadImage(from: urlString)
-        } else {
-            if let url = cloudinary.createUrl().generate(urlString) {
-                loadImage(from: url)
-            }
-        }
-    }
-    
-    private func loadImage(from urlString: String) {
-        guard let url = URL(string: urlString) else { return }
-        URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            guard let data = data, let image = UIImage(data: data) else { return }
-            DispatchQueue.main.async {
-                self?.imageView.image = image
-            }
-        }.resume()
-    }
-}
-
 // MARK: - Full Screen Image Viewer
 class FullScreenImageViewController: UIViewController {
     var imageURL: String?
@@ -721,6 +569,7 @@ class FullScreenImageViewController: UIViewController {
     private let scrollView = UIScrollView()
     private let imageView = UIImageView()
     private let closeButton = UIButton(type: .system)
+    private let loadingIndicator = UIActivityIndicatorView(style: .large)
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -737,8 +586,14 @@ class FullScreenImageViewController: UIViewController {
         imageView.translatesAutoresizingMaskIntoConstraints = false
         scrollView.addSubview(imageView)
         
+        loadingIndicator.color = .white
+        loadingIndicator.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(loadingIndicator)
+        
         closeButton.setImage(UIImage(systemName: "xmark.circle.fill"), for: .normal)
         closeButton.tintColor = .white
+        closeButton.backgroundColor = UIColor.black.withAlphaComponent(0.5)
+        closeButton.layer.cornerRadius = 22
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         closeButton.addTarget(self, action: #selector(closeTapped), for: .touchUpInside)
         view.addSubview(closeButton)
@@ -756,6 +611,9 @@ class FullScreenImageViewController: UIViewController {
             imageView.widthAnchor.constraint(equalTo: scrollView.widthAnchor),
             imageView.heightAnchor.constraint(equalTo: scrollView.heightAnchor),
             
+            loadingIndicator.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            loadingIndicator.centerYAnchor.constraint(equalTo: view.centerYAnchor),
+            
             closeButton.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16),
             closeButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             closeButton.widthAnchor.constraint(equalToConstant: 44),
@@ -768,6 +626,8 @@ class FullScreenImageViewController: UIViewController {
     func loadImage() {
         guard let urlString = imageURL else { return }
         
+        loadingIndicator.startAnimating()
+        
         if urlString.starts(with: "http") {
             loadRemoteImage(from: urlString)
         } else if let cloudinary = cloudinary {
@@ -778,11 +638,20 @@ class FullScreenImageViewController: UIViewController {
     }
     
     func loadRemoteImage(from urlString: String) {
-        guard let url = URL(string: urlString) else { return }
+        guard let url = URL(string: urlString) else {
+            loadingIndicator.stopAnimating()
+            return
+        }
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
-            guard let data = data, let image = UIImage(data: data) else { return }
+            guard let data = data, let image = UIImage(data: data) else {
+                DispatchQueue.main.async {
+                    self?.loadingIndicator.stopAnimating()
+                }
+                return
+            }
             DispatchQueue.main.async {
                 self?.imageView.image = image
+                self?.loadingIndicator.stopAnimating()
             }
         }.resume()
     }

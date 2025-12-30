@@ -1,6 +1,7 @@
 //
-//  Edittickets.swift (UPDATED)
+//  Edittickets.swift (FIXED)
 //  Auto-sets status to "Assigned" when technician selected + save
+//  ✅ FIXED: Added debug logging for priority saving
 //
 
 import UIKit
@@ -60,6 +61,9 @@ class Edittickets: UIViewController {
         // Make status read-only (will be auto-updated)
         statusLabel.isEnabled = false
         statusLabel.textColor = .systemGray
+        
+        // ✅ DEBUG: Log initial priority
+        print("📝 Initial ticket priority: \(ticket?.priority ?? "nil")")
     }
     
     // MARK: - Display ticket info
@@ -178,29 +182,39 @@ class Edittickets: UIViewController {
     
     // MARK: - Setup priority segmented control
     func setupPrioritySegment() {
-        guard let priority = ticket?.priority else { return }
+        guard let priority = ticket?.priority else {
+            print("⚠️ No priority set for ticket, defaulting to Medium")
+            prioritySegment.selectedSegmentIndex = 1 // Default to Medium (index 1)
+            return
+        }
+        
+        print("📝 Setting up priority segment with: \(priority)")
         
         switch priority.lowercased() {
-        case "critical":
-            prioritySegment.selectedSegmentIndex = 0
         case "high":
-            prioritySegment.selectedSegmentIndex = 1
+            prioritySegment.selectedSegmentIndex = 0
+            print("✅ Set to High (index 0)")
         case "medium":
-            prioritySegment.selectedSegmentIndex = 2
+            prioritySegment.selectedSegmentIndex = 1
+            print("✅ Set to Medium (index 1)")
         case "low":
-            prioritySegment.selectedSegmentIndex = 3
+            prioritySegment.selectedSegmentIndex = 2
+            print("✅ Set to Low (index 2)")
         default:
-            prioritySegment.selectedSegmentIndex = UISegmentedControl.noSegment
+            prioritySegment.selectedSegmentIndex = 1 // Default to Medium
+            print("⚠️ Unknown priority '\(priority)', defaulting to Medium")
         }
     }
     
     // MARK: - Priority changed
     @IBAction func priorityChanged(_ sender: UISegmentedControl) {
+        let selectedPriority = getSelectedPriority()
+        print("📝 Priority changed to: \(selectedPriority.rawValue)")
         updatePredictedDeadline()
         updateStatusPreview()
     }
     
-    // ✅ NEW: Update Status Preview
+    // ✅ Update Status Preview
     func updateStatusPreview() {
         // If technician is selected, show "Assigned"
         if selectedTechnician != nil {
@@ -233,19 +247,17 @@ class Edittickets: UIViewController {
     func getSelectedPriority() -> TicketPriority {
         switch prioritySegment.selectedSegmentIndex {
         case 0:
-            return .critical
-        case 1:
             return .high
-        case 2:
+        case 1:
             return .medium
-        case 3:
+        case 2:
             return .low
         default:
             return .medium
         }
     }
     
-    // MARK: - Save Button Action (UPDATED)
+    // MARK: - Save Button Action (FIXED with logging)
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         guard var ticket = ticket else { return }
         
@@ -257,6 +269,7 @@ class Edittickets: UIViewController {
         
         // Get selected priority
         let priority = getSelectedPriority()
+        print("💾 Saving with priority: \(priority.rawValue)")
         
         // ✅ Set status to "Assigned" when technician is selected
         let status: TicketStatus = .assigned
@@ -280,7 +293,7 @@ class Edittickets: UIViewController {
         )
     }
     
-    // MARK: - Save Ticket to Firestore
+    // MARK: - Save Ticket to Firestore (FIXED with better logging)
     func saveTicketToFirestore(
         ticket: Ticket,
         status: TicketStatus,
@@ -292,10 +305,10 @@ class Edittickets: UIViewController {
         
         // Prepare data to update
         var updateData: [String: Any] = [
-            "status": status.rawValue,  // ✅ Always "Assigned" when technician selected
+            "status": status.rawValue,
             "description": descriptionLabel.text ?? ticket.description,
             "campus": campusLabel.text ?? ticket.campus,
-            "priority": priority.rawValue,
+            "priority": priority.rawValue,  // ✅ This saves the priority
             "due": DeadlineCalculator.formatDeadlineForFirebase(deadline)
         ]
         
@@ -305,6 +318,12 @@ class Edittickets: UIViewController {
             updateData["technician_id"] = technicianID
             updateData["technician_name"] = technicianName
         }
+        
+        print("💾 Updating Firestore with data:")
+        print("   Ticket ID: \(ticket.ticket_id)")
+        print("   Status: \(status.rawValue)")
+        print("   Priority: \(priority.rawValue)")
+        print("   Due: \(DeadlineCalculator.formatDeadlineForFirebase(deadline))")
         
         // Update Firestore document
         db.collection("Tickets")
@@ -324,6 +343,8 @@ class Edittickets: UIViewController {
                     return
                 }
                 
+                print("📝 Found ticket document: \(document.documentID)")
+                
                 document.reference.updateData(updateData) { error in
                     DispatchQueue.main.async {
                         if let error = error {
@@ -331,8 +352,9 @@ class Edittickets: UIViewController {
                             self.showErrorAndResetButton("Failed to save changes")
                         } else {
                             print("✅ Ticket updated successfully!")
-                            print(" Status: Assigned")
-                            print(" New deadline: \(DeadlineCalculator.formatDeadline(deadline))")
+                            print("   Status: \(status.rawValue)")
+                            print("   Priority: \(priority.rawValue)")
+                            print("   New deadline: \(DeadlineCalculator.formatDeadline(deadline))")
                             self.showSuccessAndReturn(deadline: deadline)
                         }
                     }
@@ -388,6 +410,6 @@ extension Edittickets: TechnicianPickerDelegate {
         updateStatusPreview()  // ✅ Update status to "Assigned"
         updatePredictedDeadline()  // ✅ Recalculate deadline with Assigned status
         print("✅ Selected technician: \(technician.name)")
-        print(" Status will be: Assigned")
+        print("   Status will be: Assigned")
     }
 }

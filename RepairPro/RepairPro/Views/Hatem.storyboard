@@ -626,6 +626,39 @@
             </objects>
             <point key="canvasLocation" x="3767" y="20"/>
         </scene>
+        <!--Feedback Detail View Controller-->
+        <scene sceneID="eZr-mB-4vF">
+            <objects>
+                <viewController id="Tx3-Bs-zLx" customClass="FeedbackDetailViewController" customModule="RepairPro" customModuleProvider="target" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="B4p-dh-e7g">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <subviews>
+                            <scrollView clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleToFill" fixedFrame="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Cqf-re-mCH">
+                                <rect key="frame" x="0.0" y="160" width="393" height="698"/>
+                                <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                <subviews>
+                                    <stackView opaque="NO" contentMode="scaleToFill" fixedFrame="YES" axis="vertical" translatesAutoresizingMaskIntoConstraints="NO" id="hoS-9T-hMB">
+                                        <rect key="frame" x="-5" y="0.0" width="407" height="688"/>
+                                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMaxY="YES"/>
+                                    </stackView>
+                                </subviews>
+                                <viewLayoutGuide key="contentLayoutGuide" id="fS9-bF-X3A"/>
+                                <viewLayoutGuide key="frameLayoutGuide" id="8wv-ZU-Qn2"/>
+                            </scrollView>
+                        </subviews>
+                        <viewLayoutGuide key="safeArea" id="dCR-DD-etQ"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <connections>
+                        <outlet property="contentStackView" destination="hoS-9T-hMB" id="8Mo-s4-o37"/>
+                        <outlet property="scrollView" destination="Cqf-re-mCH" id="UZL-fg-N4i"/>
+                    </connections>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="joW-ZI-Rxw" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="4921.3740458015263" y="-697.18309859154931"/>
+        </scene>
     </scenes>
     <inferredMetricsTieBreakers>
         <segue reference="WII-oF-9YY"/>

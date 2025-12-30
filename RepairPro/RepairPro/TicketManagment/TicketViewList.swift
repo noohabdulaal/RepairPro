@@ -1,6 +1,7 @@
 //
-//  TicketViewList.swift (UPDATED)
+//  TicketViewList.swift (FIXED)
 //  Shows formatted deadline with urgency indicators on ticket cards
+//  ✅ FIXED: Improved priority filtering with debug logging
 //
 
 import UIKit
@@ -108,13 +109,17 @@ class TicketViewList: UIViewController {
             
             for doc in snapshot.documents {
                 print("--- Document Data for \(doc.documentID) ---")
-                print(doc.data())
+                let data = doc.data()
+                print("  ticket_id: \(data["ticket_id"] ?? "nil")")
+                print("  status: \(data["status"] ?? "nil")")
+                print("  priority: \(data["priority"] ?? "nil")")  // ✅ Log priority
+                print("  campus: \(data["campus"] ?? "nil")")
                 print("---------------------------------------")
                 
                 do {
                     let ticket = try doc.data(as: Ticket.self)
                     tickets.append(ticket)
-                    print("✅ Successfully decoded ticket ID: \(ticket.ticket_id)")
+                    print("✅ Successfully decoded ticket ID: \(ticket.ticket_id) with priority: \(ticket.priority ?? "nil")")
                 } catch {
                     print("❌ DECODING ERROR: Failed to decode ticket for document \(doc.documentID):")
                     print(error)
@@ -123,45 +128,92 @@ class TicketViewList: UIViewController {
             
             DispatchQueue.main.async {
                 self.ticketsArray = tickets.filter { $0.status.lowercased() != "pending" }
+                print("✅ Loaded \(self.ticketsArray.count) non-pending tickets")
+                
+                // ✅ DEBUG: Log priorities of all tickets
+                print("📊 Priority breakdown:")
+                for ticket in self.ticketsArray {
+                    print("  Ticket \(ticket.ticket_id): \(ticket.priority ?? "NO PRIORITY")")
+                }
+                
                 self.applyCurrentFilters()
-                print("✅ Final ticketsArray count displayed: \(self.ticketsArray.count)")
             }
         }
     }
     
     func displayTickets(_ tickets: [Ticket]) {
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
-        tickets.forEach { createTicketView(for: $0) }
+        
+        if tickets.isEmpty {
+            let emptyLabel = UILabel()
+            emptyLabel.text = "No tickets match the current filters"
+            emptyLabel.textAlignment = .center
+            emptyLabel.textColor = .systemGray
+            emptyLabel.font = .systemFont(ofSize: 16)
+            emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+            stackView.addArrangedSubview(emptyLabel)
+        } else {
+            tickets.forEach { createTicketView(for: $0) }
+        }
     }
     
     // ✅ FIXED: Apply Filters Method
     func applyFilters(status: String?, priority: String?, deadline: String?) {
+        print("🔍 NEW FILTERS APPLIED:")
+        print("  Status: \(status ?? "none")")
+        print("  Priority: \(priority ?? "none")")
+        print("  Deadline: \(deadline ?? "none")")
+        
         currentStatusFilter = status
         currentPriorityFilter = priority
         currentDeadlineFilter = deadline
         applyCurrentFilters()
     }
 
-    // ✅ FIXED: Apply Current Filters Method
+    // ✅ FIXED: Apply Current Filters Method with detailed logging
     func applyCurrentFilters() {
+        print("\n🔍 ========== APPLYING FILTERS ==========")
+        print("Starting with \(ticketsArray.count) tickets")
+        
         // Start with all tickets (excluding pending)
         filteredTickets = ticketsArray
         
         // ✅ FILTER BY STATUS (if selected)
         if let status = currentStatusFilter {
+            let beforeCount = filteredTickets.count
             filteredTickets = filteredTickets.filter {
                 $0.status.lowercased() == status.lowercased()
             }
-            print("🔍 Filtered by status '\(status)': \(filteredTickets.count) tickets")
+            print("📌 Status filter '\(status)': \(beforeCount) → \(filteredTickets.count) tickets")
+        } else {
+            print("📌 No status filter applied")
         }
         
-        // ✅ FILTER BY PRIORITY (if selected) - FIXED!
+        // ✅ FILTER BY PRIORITY (if selected) - FIXED with detailed logging!
         if let priority = currentPriorityFilter {
-            filteredTickets = filteredTickets.filter { ticket in
-                guard let ticketPriority = ticket.priority else { return false }
-                return ticketPriority.lowercased() == priority.lowercased()
+            let beforeCount = filteredTickets.count
+            print("📌 Filtering by priority: '\(priority)'")
+            
+            // Debug: Show what we're filtering
+            print("  Tickets before priority filter:")
+            for ticket in filteredTickets {
+                print("    Ticket \(ticket.ticket_id): priority = '\(ticket.priority ?? "nil")'")
             }
-            print("🔍 Filtered by priority '\(priority)': \(filteredTickets.count) tickets")
+            
+            filteredTickets = filteredTickets.filter { ticket in
+                guard let ticketPriority = ticket.priority else {
+                    print("    ⚠️ Ticket \(ticket.ticket_id) has NO PRIORITY - excluded")
+                    return false
+                }
+                
+                let matches = ticketPriority.lowercased() == priority.lowercased()
+                print("    Ticket \(ticket.ticket_id): '\(ticketPriority)' \(matches ? "MATCHES" : "doesn't match") '\(priority)'")
+                return matches
+            }
+            
+            print("📌 Priority filter '\(priority)': \(beforeCount) → \(filteredTickets.count) tickets")
+        } else {
+            print("📌 No priority filter applied")
         }
         
         // ✅ SORT BY DEADLINE (if selected)
@@ -182,15 +234,19 @@ class TicketViewList: UIViewController {
                     return date1 > date2  // Latest first
                 }
             }
-            print("🔍 Sorted by deadline '\(deadline)': \(filteredTickets.count) tickets")
+            print("📌 Sorted by deadline '\(deadline)': \(filteredTickets.count) tickets")
+        } else {
+            print("📌 No deadline sorting applied")
         }
+        
+        print("✅ FINAL RESULT: Displaying \(filteredTickets.count) tickets")
+        print("========================================\n")
         
         // Display the filtered and sorted tickets
         displayTickets(filteredTickets)
-        print("✅ Displaying \(filteredTickets.count) tickets after filters applied")
     }
 
-    // MARK: - Create Ticket View (UPDATED with formatted deadline)
+    // MARK: - Create Ticket View (with priority display)
     func createTicketView(for ticket: Ticket) {
         let statusColor = getStatusColor(for: ticket.status)
         
@@ -201,7 +257,7 @@ class TicketViewList: UIViewController {
         containerView.translatesAutoresizingMaskIntoConstraints = false
         
         let hasTechi = ticket.technician_name != nil
-        containerView.heightAnchor.constraint(equalToConstant: hasTechi ? 180 : 160).isActive = true
+        containerView.heightAnchor.constraint(equalToConstant: hasTechi ? 200 : 180).isActive = true
         
         containerView.tag = ticket.ticket_id
         let tap = UITapGestureRecognizer(target: self, action: #selector(ticketTapped(_:)))
@@ -218,6 +274,20 @@ class TicketViewList: UIViewController {
         ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketIDLabel)
+        
+        // ✅ NEW: Priority badge
+        let priorityBadge = UILabel()
+        if let priority = ticket.priority {
+            priorityBadge.text = priority
+            priorityBadge.font = .systemFont(ofSize: 11, weight: .bold)
+            priorityBadge.textAlignment = .center
+            priorityBadge.textColor = .white
+            priorityBadge.backgroundColor = getPriorityColor(priority)
+            priorityBadge.layer.cornerRadius = 4
+            priorityBadge.clipsToBounds = true
+            priorityBadge.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(priorityBadge)
+        }
         
         // ✅ UPDATED: Formatted due date with urgency
         let dueDateLabel = UILabel()
@@ -265,10 +335,10 @@ class TicketViewList: UIViewController {
             technicianLabel = label
         }
         
-        // ✅ NEW: Time remaining label
+        // ✅ Time remaining label
         let timeRemainingLabel = UILabel()
         let timeRemaining = getTimeRemaining(from: ticket.due)
-        timeRemainingLabel.text = " \(timeRemaining)"
+        timeRemainingLabel.text = "⏱ \(timeRemaining)"
         timeRemainingLabel.font = .systemFont(ofSize: 12, weight: .medium)
         timeRemainingLabel.textColor = isOverdue(ticket.due) ? .systemRed : .systemGray
         timeRemainingLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -338,6 +408,16 @@ class TicketViewList: UIViewController {
             ticketImageView.heightAnchor.constraint(equalToConstant: 60)
         ]
         
+        // ✅ Add priority badge constraints
+        if ticket.priority != nil {
+            constraints.append(contentsOf: [
+                priorityBadge.leadingAnchor.constraint(equalTo: ticketIDLabel.trailingAnchor, constant: 8),
+                priorityBadge.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor),
+                priorityBadge.widthAnchor.constraint(equalToConstant: 70),
+                priorityBadge.heightAnchor.constraint(equalToConstant: 20)
+            ])
+        }
+        
         if let techLabel = technicianLabel {
             constraints.append(contentsOf: [
                 techLabel.leadingAnchor.constraint(equalTo: sideBar.trailingAnchor, constant: 12),
@@ -354,26 +434,37 @@ class TicketViewList: UIViewController {
         stackView.addArrangedSubview(containerView)
     }
     
-    // ✅ NEW: Format Deadline with Urgency
+    // ✅ Get Priority Color with custom colors
+    func getPriorityColor(_ priority: String) -> UIColor {
+        switch priority.lowercased() {
+        case "high":
+            return UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1) // #FEA214 (Orange)
+        case "medium":
+            return UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1) // #00476F (Dark Blue)
+        case "low":
+            return .systemGray
+        default:
+            return .systemGray
+        }
+    }
+    
+    // Format Deadline with Urgency
     func formatDeadline(_ dueString: String) -> (String, String, UIColor) {
-        // Parse ISO8601 date
         let formatter = ISO8601DateFormatter()
         guard let deadline = formatter.date(from: dueString) else {
             return (dueString, "📅", .label)
         }
         
-        // Format for display
         let displayFormatter = DateFormatter()
         displayFormatter.dateFormat = "MMM dd, HH:mm"
         let formattedDate = displayFormatter.string(from: deadline)
         
-        // Get urgency level
         let urgency = getUrgencyLevel(for: deadline)
         
         return (formattedDate, urgency.emoji, urgency.textColor)
     }
     
-    // ✅ NEW: Get Urgency Level
+    // Get Urgency Level
     func getUrgencyLevel(for deadline: Date) -> (emoji: String, textColor: UIColor) {
         let hoursRemaining = Calendar.current.dateComponents(
             [.hour],
@@ -382,17 +473,17 @@ class TicketViewList: UIViewController {
         ).hour ?? 0
         
         if hoursRemaining < 0 {
-            return ("🔴", .systemRed)      // Overdue
+            return ("", .systemRed)
         } else if hoursRemaining < 4 {
-            return ("🟠", .systemOrange)   // Urgent
+            return ("", .systemOrange)
         } else if hoursRemaining < 24 {
-            return ("🟡", .systemYellow)   // Soon
+            return ("", .systemYellow)
         } else {
-            return ("🟢", .label)          // Normal
+            return ("", .label)
         }
     }
     
-    // ✅ NEW: Get Time Remaining
+    // Get Time Remaining
     func getTimeRemaining(from dueString: String) -> String {
         let formatter = ISO8601DateFormatter()
         guard let deadline = formatter.date(from: dueString) else {
@@ -417,7 +508,7 @@ class TicketViewList: UIViewController {
         }
     }
     
-    // ✅ NEW: Check if Overdue
+    // Check if Overdue
     func isOverdue(_ dueString: String) -> Bool {
         let formatter = ISO8601DateFormatter()
         guard let deadline = formatter.date(from: dueString) else {

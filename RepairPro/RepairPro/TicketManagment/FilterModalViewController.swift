@@ -118,7 +118,7 @@ class FilterModalViewController: UIViewController {
     }
 
     @objc private func applyButtonTapped() {
-        // Status mapping - FIXED
+        // Status mapping
         var statusValue: String? = nil
         switch statusSegment.selectedSegmentIndex {
         case 0: statusValue = "complete"
@@ -127,22 +127,24 @@ class FilterModalViewController: UIViewController {
         default: statusValue = nil
         }
 
-        // Priority mapping - FIXED: Now correctly maps to priority values (Capitalized)
+        // ✅ FIXED: Priority mapping for High, Medium, Low only
         var priorityValue: String? = nil
         switch prioritySegment.selectedSegmentIndex {
-        case 0: priorityValue = "High"      // High → High
-        case 1: priorityValue = "Medium"    // Medium → Medium
-        case 2: priorityValue = "Low"       // Low → Low
+        case 0: priorityValue = "High"
+        case 1: priorityValue = "Medium"
+        case 2: priorityValue = "Low"
         default: priorityValue = nil
         }
 
-        // Deadline mapping - FIXED
+        // Deadline mapping
         var deadlineValue: String? = nil
         switch deadlineSegment.selectedSegmentIndex {
         case 0: deadlineValue = "nearest"   // Earliest/Nearest first
         case 1: deadlineValue = "furthest"  // Latest/Furthest first
         default: deadlineValue = nil
         }
+
+        print("🔍 Applying filters - Status: \(statusValue ?? "none"), Priority: \(priorityValue ?? "none"), Deadline: \(deadlineValue ?? "none")")
 
         dismiss(animated: true) {
             self.applyFilters?(statusValue, priorityValue, deadlineValue)
