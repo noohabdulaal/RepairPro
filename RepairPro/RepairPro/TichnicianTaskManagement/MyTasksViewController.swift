@@ -84,7 +84,7 @@ final class MyTasksViewController: UIViewController, UITableViewDataSource, UITa
     }
 
     private func sortTickets() {
-        // Suggested UX sorting: overdue first, then due date ascending, then status
+        // Sorting: overdue first, then due date ascending, then status
         tickets.sort { a, b in
             let aOver = isOverdue(a)
             let bOver = isOverdue(b)
@@ -189,7 +189,7 @@ final class TaskTicketCell: UITableViewCell {
             card.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -16),
         ])
 
-        // Left strip (always blue)
+        // Left strip
         leftStrip.translatesAutoresizingMaskIntoConstraints = false
         leftStrip.backgroundColor = .systemBlue
         leftStrip.layer.cornerRadius = 12
@@ -211,8 +211,8 @@ final class TaskTicketCell: UITableViewCell {
         NSLayoutConstraint.activate([
             priorityIcon.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
             priorityIcon.centerYAnchor.constraint(equalTo: card.centerYAnchor),
-            priorityIcon.widthAnchor.constraint(equalToConstant: 44),
-            priorityIcon.heightAnchor.constraint(equalToConstant: 44)
+            priorityIcon.widthAnchor.constraint(equalToConstant: 66),
+            priorityIcon.heightAnchor.constraint(equalToConstant: 66)
         ])
 
         // Labels config
@@ -228,7 +228,7 @@ final class TaskTicketCell: UITableViewCell {
         statusLabel.font = .systemFont(ofSize: 13, weight: .semibold)
         locationLabel.font = .systemFont(ofSize: 13, weight: .semibold)
 
-        statusIcon.image = UIImage(systemName: "gearshape")
+        statusIcon.image = UIImage(systemName: "circle.dashed")
         statusIcon.tintColor = .secondaryLabel
         locationIcon.image = UIImage(systemName: "mappin.and.ellipse")
         locationIcon.tintColor = .secondaryLabel
