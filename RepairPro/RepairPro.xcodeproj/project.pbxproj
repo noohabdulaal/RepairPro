@@ -30,6 +30,22 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		05956BB62F06A17C00A26DDE /* Exceptions for "RepairPro" folder in "RepairProTests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TichnicianTaskManagement/MyTasks.storyboard,
+				TichnicianTaskManagement/MyTasksViewController.swift,
+			);
+			target = 9B8267A22ED2FA36006D71E4 /* RepairProTests */;
+		};
+		05956BB72F06A17C00A26DDE /* Exceptions for "RepairPro" folder in "RepairProUITests" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				TichnicianTaskManagement/MyTasks.storyboard,
+				TichnicianTaskManagement/MyTasksViewController.swift,
+			);
+			target = 9B8267AC2ED2FA36006D71E4 /* RepairProUITests */;
+		};
 		9B8267B52ED2FA36006D71E4 /* Exceptions for "RepairPro" folder in "RepairPro" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
@@ -44,6 +60,8 @@
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
 				9B8267B52ED2FA36006D71E4 /* Exceptions for "RepairPro" folder in "RepairPro" target */,
+				05956BB62F06A17C00A26DDE /* Exceptions for "RepairPro" folder in "RepairProTests" target */,
+				05956BB72F06A17C00A26DDE /* Exceptions for "RepairPro" folder in "RepairProUITests" target */,
 			);
 			path = RepairPro;
 			sourceTree = "<group>";

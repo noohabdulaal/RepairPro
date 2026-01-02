@@ -285,6 +285,16 @@
             </objects>
             <point key="canvasLocation" x="-1440.4580152671756" y="255.63380281690141"/>
         </scene>
+        <!--MyTasks-->
+        <scene sceneID="hyw-4I-9vK">
+            <objects>
+                <viewControllerPlaceholder storyboardName="MyTasks" id="ztb-Jf-fqw" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="My Tasks" image="text.document" catalog="system" selectedImage="text.document" id="rgG-mR-O30"/>
+                </viewControllerPlaceholder>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="IIa-hm-sHa" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-4360" y="1262"/>
+        </scene>
         <!--Tab Bar Controller-->
         <scene sceneID="WWi-rX-XgG">
             <objects>
@@ -297,21 +307,62 @@
                     </tabBar>
                     <connections>
                         <segue destination="EON-ym-qbc" kind="relationship" relationship="viewControllers" id="7kT-0k-1xt"/>
+                        <segue destination="ztb-Jf-fqw" kind="relationship" relationship="viewControllers" id="XMu-Sy-8lW"/>
+                        <segue destination="0Z3-05-bvn" kind="relationship" relationship="viewControllers" id="OG7-JQ-baQ"/>
+                        <segue destination="4yd-Wv-uIb" kind="relationship" relationship="viewControllers" id="ifx-Lf-STK"/>
                     </connections>
                 </tabBarController>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="iGN-Cj-KzO" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
             <point key="canvasLocation" x="-3375" y="832"/>
         </scene>
-        <!--MyTasksVC-->
-        <scene sceneID="A1U-s2-6v1">
+        <!--Info-->
+        <scene sceneID="vR1-cL-96M">
             <objects>
-                <viewControllerPlaceholder storyboardName="MyTasksVC" id="7BW-bI-d9G" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="Tickets" image="doc.text" catalog="system" id="LpY-wE-bIi"/>
-                </viewControllerPlaceholder>
-                <placeholder placeholderIdentifier="IBFirstResponder" id="kaG-Ta-CSQ" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+                <viewController id="0Z3-05-bvn" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="58j-nu-JYf">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="J7X-Fx-kS2"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Info" image="questionmark.circle.fill" catalog="system" id="7Ai-5b-WWO"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="hoF-cH-vO0" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
-            <point key="canvasLocation" x="-3280" y="1244"/>
+            <point key="canvasLocation" x="-3376" y="1675"/>
+        </scene>
+        <!--My Tasks-->
+        <scene sceneID="pim-M1-ETv">
+            <objects>
+                <viewController id="9M6-G2-GXM" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="SLC-85-1Eh">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="82e-En-xIw"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="My Tasks" image="text.document" catalog="system" id="Qi8-YX-b9L"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="Dbe-v2-5gj" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-4273" y="1675"/>
+        </scene>
+        <!--Settings-->
+        <scene sceneID="2Hv-eB-bdo">
+            <objects>
+                <viewController id="4yd-Wv-uIb" sceneMemberID="viewController">
+                    <view key="view" contentMode="scaleToFill" id="HnA-2v-fzb">
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                        <viewLayoutGuide key="safeArea" id="1aW-7o-B4a"/>
+                        <color key="backgroundColor" systemColor="systemBackgroundColor"/>
+                    </view>
+                    <tabBarItem key="tabBarItem" title="Settings" image="gearshape.fill" catalog="system" id="rwm-CO-5fE"/>
+                </viewController>
+                <placeholder placeholderIdentifier="IBFirstResponder" id="tkb-92-zbf" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="-2497" y="1675"/>
         </scene>
     </scenes>
     <resources>
@@ -319,10 +370,12 @@
         <image name="bell.fill" catalog="system" width="123" height="128"/>
         <image name="building.2" catalog="system" width="120" height="128"/>
         <image name="chart.line.uptrend.xyaxis" catalog="system" width="128" height="102"/>
-        <image name="doc.text" catalog="system" width="115" height="128"/>
+        <image name="gearshape.fill" catalog="system" width="128" height="123"/>
         <image name="house.fill" catalog="system" width="128" height="104"/>
         <image name="list.bullet.clipboard" catalog="system" width="98" height="128"/>
+        <image name="questionmark.circle.fill" catalog="system" width="128" height="123"/>
         <image name="shippingbox" catalog="system" width="128" height="123"/>
+        <image name="text.document" catalog="system" width="115" height="128"/>
         <namedColor name="DashLogo">
             <color red="0.10999999940395355" green="0.28200000524520874" blue="0.42399999499320984" alpha="1" colorSpace="custom" customColorSpace="displayP3"/>
         </namedColor>
