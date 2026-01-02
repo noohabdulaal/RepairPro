@@ -289,7 +289,7 @@
         <scene sceneID="hyw-4I-9vK">
             <objects>
                 <viewControllerPlaceholder storyboardName="MyTasks" id="ztb-Jf-fqw" sceneMemberID="viewController">
-                    <tabBarItem key="tabBarItem" title="My Tasks" image="text.document" catalog="system" selectedImage="doc.text" id="rgG-mR-O30"/>
+                    <tabBarItem key="tabBarItem" title="My Tasks" image="text.document" catalog="system" id="rgG-mR-O30"/>
                 </viewControllerPlaceholder>
                 <placeholder placeholderIdentifier="IBFirstResponder" id="IIa-hm-sHa" userLabel="First Responder" customClass="UIResponder" sceneMemberID="firstResponder"/>
             </objects>
@@ -370,7 +370,6 @@
         <image name="bell.fill" catalog="system" width="123" height="128"/>
         <image name="building.2" catalog="system" width="120" height="128"/>
         <image name="chart.line.uptrend.xyaxis" catalog="system" width="128" height="102"/>
-        <image name="doc.text" catalog="system" width="115" height="128"/>
         <image name="gearshape.fill" catalog="system" width="128" height="123"/>
         <image name="house.fill" catalog="system" width="128" height="104"/>
         <image name="list.bullet.clipboard" catalog="system" width="98" height="128"/>

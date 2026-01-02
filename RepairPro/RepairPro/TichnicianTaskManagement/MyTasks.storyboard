@@ -24,11 +24,13 @@
             </objects>
             <point key="canvasLocation" x="1063.3587786259541" y="3.5211267605633805"/>
         </scene>
-        <!--Navigation Controller-->
+        <!--My Tasks-->
         <scene sceneID="oXD-kE-Nvq">
             <objects>
                 <navigationController automaticallyAdjustsScrollViewInsets="NO" id="4kV-DR-ARN" sceneMemberID="viewController">
+                    <tabBarItem key="tabBarItem" title="My Tasks" image="doc.text" catalog="system" id="vIU-RN-hDD"/>
                     <toolbarItems/>
+                    <simulatedTabBarMetrics key="simulatedBottomBarMetrics"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="nOn-pJ-kIg">
                         <rect key="frame" x="0.0" y="118" width="393" height="44"/>
                         <autoresizingMask key="autoresizingMask"/>
@@ -44,6 +46,7 @@
         </scene>
     </scenes>
     <resources>
+        <image name="doc.text" catalog="system" width="115" height="128"/>
         <systemColor name="systemBackgroundColor">
             <color white="1" alpha="1" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
         </systemColor>
