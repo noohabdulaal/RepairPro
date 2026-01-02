@@ -62,6 +62,9 @@ class Edittickets: UIViewController {
         statusLabel.isEnabled = false
         statusLabel.textColor = .systemGray
         
+        // Disable save button if no technician is selected
+        updateSaveButtonState()
+        
         // ✅ DEBUG: Log initial priority
         print("📝 Initial ticket priority: \(ticket?.priority ?? "nil")")
     }
@@ -80,7 +83,11 @@ class Edittickets: UIViewController {
     func loadExistingTechnician() {
         guard let ticket = ticket,
               let technicianID = ticket.technician_id,
-              let technicianName = ticket.technician_name else { return }
+              let technicianName = ticket.technician_name else {
+            print("⚠️ No technician assigned to ticket")
+            updateSaveButtonState()  // Will disable save button
+            return
+        }
         
         if let technician = availableTechnicians.first(where: { $0.id == technicianID }) {
             selectedTechnician = technician
@@ -89,6 +96,8 @@ class Edittickets: UIViewController {
         }
         
         updateTechnicianButtonTitle()
+        updateSaveButtonState()  // Will enable save button since technician exists
+        print("✅ Loaded existing technician: \(technicianName)")
     }
     
     // MARK: - Setup Technician Button
@@ -214,13 +223,26 @@ class Edittickets: UIViewController {
         updateStatusPreview()
     }
     
+    // ✅ Update Save Button State
+    func updateSaveButtonState() {
+        if selectedTechnician != nil {
+            saveButton.isEnabled = true
+            saveButton.alpha = 1.0
+        } else {
+            saveButton.isEnabled = false
+            saveButton.alpha = 0.5
+        }
+    }
+    
     // ✅ Update Status Preview
     func updateStatusPreview() {
         // If technician is selected, show "Assigned"
         if selectedTechnician != nil {
             statusLabel.text = "Assigned"
+            statusLabel.textColor = UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 1) // Green for assigned
         } else {
             statusLabel.text = "Pending"
+            statusLabel.textColor = .systemGray
         }
     }
     
@@ -263,7 +285,7 @@ class Edittickets: UIViewController {
         
         // ✅ Check if technician is selected
         guard let technician = selectedTechnician else {
-            showAlert(title: "Technician Required", message: "Please select a technician before saving")
+            showAlert(title: "Technician Required", message: "Please select a technician before saving. A ticket cannot have 'Assigned' status without a technician.")
             return
         }
         
@@ -273,6 +295,12 @@ class Edittickets: UIViewController {
         
         // ✅ Set status to "Assigned" when technician is selected
         let status: TicketStatus = .assigned
+        
+        // Validate: Cannot assign without technician
+        if status == .assigned && ticket.technician_id == nil {
+            showAlert(title: "Error", message: "Cannot set status to 'Assigned' without a technician")
+            return
+        }
         
         // ✅ AUTO-GENERATE DEADLINE based on Assigned status + priority
         let deadline = DeadlineCalculator.calculateDeadline(
@@ -408,8 +436,10 @@ extension Edittickets: TechnicianPickerDelegate {
         selectedTechnician = technician
         updateTechnicianButtonTitle()
         updateStatusPreview()  // ✅ Update status to "Assigned"
+        updateSaveButtonState()  // ✅ Enable save button
         updatePredictedDeadline()  // ✅ Recalculate deadline with Assigned status
         print("✅ Selected technician: \(technician.name)")
         print("   Status will be: Assigned")
+        print("   Save button enabled: true")
     }
 }

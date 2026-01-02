@@ -144,28 +144,56 @@ class FeedbackDetailViewController: UIViewController {
         let container = UIView()
         container.translatesAutoresizingMaskIntoConstraints = false
         
+        let titleLabel = UILabel()
+        titleLabel.text = "Ticket ID:"
+        titleLabel.font = .systemFont(ofSize: 14, weight: .medium)
+        titleLabel.textColor = .label
+        titleLabel.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(titleLabel)
+        
+        // Create text field box
+        let textFieldBox = UIView()
+        textFieldBox.backgroundColor = .white
+        textFieldBox.layer.cornerRadius = 8
+        textFieldBox.layer.borderWidth = 1
+        textFieldBox.layer.borderColor = UIColor.systemGray4.cgColor
+        textFieldBox.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(textFieldBox)
+        
         let ticketIDLabel = UILabel()
-        ticketIDLabel.text = "Ticket ID: \(feedback.feedback_id)"
-        ticketIDLabel.font = .systemFont(ofSize: 16, weight: .semibold)
+        ticketIDLabel.text = "\(feedback.feedback_id)"
+        ticketIDLabel.font = .systemFont(ofSize: 14)
         ticketIDLabel.textColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(ticketIDLabel)
+        textFieldBox.addSubview(ticketIDLabel)
         
         NSLayoutConstraint.activate([
-            ticketIDLabel.topAnchor.constraint(equalTo: container.topAnchor),
-            ticketIDLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            ticketIDLabel.bottomAnchor.constraint(equalTo: container.bottomAnchor)
+            titleLabel.topAnchor.constraint(equalTo: container.topAnchor),
+            titleLabel.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            titleLabel.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            
+            textFieldBox.topAnchor.constraint(equalTo: titleLabel.bottomAnchor, constant: 8),
+            textFieldBox.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            textFieldBox.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            textFieldBox.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            
+            ticketIDLabel.topAnchor.constraint(equalTo: textFieldBox.topAnchor, constant: 12),
+            ticketIDLabel.leadingAnchor.constraint(equalTo: textFieldBox.leadingAnchor, constant: 12),
+            ticketIDLabel.bottomAnchor.constraint(equalTo: textFieldBox.bottomAnchor, constant: -12)
         ])
         
         if let priority = feedback.priority {
             let priorityBadge = createPriorityBadge(priority: priority)
             priorityBadge.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(priorityBadge)
+            textFieldBox.addSubview(priorityBadge)
             
             NSLayoutConstraint.activate([
-                priorityBadge.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                priorityBadge.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor)
+                priorityBadge.trailingAnchor.constraint(equalTo: textFieldBox.trailingAnchor, constant: -12),
+                priorityBadge.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor),
+                ticketIDLabel.trailingAnchor.constraint(lessThanOrEqualTo: priorityBadge.leadingAnchor, constant: -12)
             ])
+        } else {
+            ticketIDLabel.trailingAnchor.constraint(equalTo: textFieldBox.trailingAnchor, constant: -12).isActive = true
         }
         
         return container
@@ -438,7 +466,19 @@ class FeedbackDetailViewController: UIViewController {
     
     func createPriorityBadge(priority: String) -> UIView {
         let container = UIView()
-        container.backgroundColor = .systemRed
+        
+        // Set color based on priority: High = #00476F, Medium = #FEA214, Low = grey
+        switch priority.lowercased() {
+        case "high":
+            container.backgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1) // #00476F
+        case "medium":
+            container.backgroundColor = UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1) // #FEA214
+        case "low":
+            container.backgroundColor = .systemGray
+        default:
+            container.backgroundColor = .systemGray
+        }
+        
         container.layer.cornerRadius = 12
         container.translatesAutoresizingMaskIntoConstraints = false
         
