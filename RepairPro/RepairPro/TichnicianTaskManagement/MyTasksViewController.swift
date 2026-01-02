@@ -1,3 +1,10 @@
+//
+//  MyTasksViewController.swift
+//  RepairPro
+//
+//  Created by Alshabbaq on 01/01/2026.
+//
+
 import UIKit
 
 final class MyTasksViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
@@ -192,7 +199,7 @@ final class TaskTicketCell: UITableViewCell {
             leftStrip.leadingAnchor.constraint(equalTo: card.leadingAnchor),
             leftStrip.topAnchor.constraint(equalTo: card.topAnchor),
             leftStrip.bottomAnchor.constraint(equalTo: card.bottomAnchor),
-            leftStrip.widthAnchor.constraint(equalToConstant: 12)
+            leftStrip.widthAnchor.constraint(equalToConstant: 20)
         ])
 
         // Priority icon (SF Symbol)
@@ -276,7 +283,7 @@ final class TaskTicketCell: UITableViewCell {
         card.addSubview(vStack)
 
         NSLayoutConstraint.activate([
-            vStack.leadingAnchor.constraint(equalTo: leftStrip.trailingAnchor, constant: 14),
+            vStack.leadingAnchor.constraint(equalTo: leftStrip.trailingAnchor, constant: 16),
             vStack.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
             vStack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -14),
             vStack.trailingAnchor.constraint(equalTo: priorityIcon.leadingAnchor, constant: -12)
