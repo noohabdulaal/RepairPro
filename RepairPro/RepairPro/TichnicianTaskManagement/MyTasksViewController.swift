@@ -9,7 +9,7 @@ import UIKit
 
 final class MyTasksViewController: UIViewController, UITableViewDataSource, UITableViewDelegate {
 
-    // MARK: - UI Model (screen-specific, keeps you safe from teammate model changes)
+    // MARK: - UI Model
     enum Status: String {
         case assigned = "Assigned"
         case inProgress = "In Progress"
@@ -42,9 +42,9 @@ final class MyTasksViewController: UIViewController, UITableViewDataSource, UITa
     private lazy var tickets: [TicketUI] = [
         .init(id: 4325, due: Self.makeDate("2025-10-25"), subject: "Light switch broken", status: .inProgress, campus: "Campus A", location: "19.120", priority: .high),
         .init(id: 1022, due: Self.makeDate("2025-12-25"), subject: "Damaged wall socket in Lab 3 (needs replacement)", status: .assigned, campus: "Campus A", location: "5.17", priority: .low),
-        .init(id: 1100, due: Self.makeDate("2025-1-25"), subject: "Flickering light in Room 104", status: .completed, campus: "Campus A", location: "19.104", priority: .medium),
+        .init(id: 1100, due: Self.makeDate("2025-01-25"), subject: "Flickering light in Room 104", status: .completed, campus: "Campus A", location: "19.104", priority: .medium),
         .init(id: 1120, due: Self.makeDate("2025-09-30"), subject: "Power outage in Lab 20.204", status: .inProgress, campus: "Campus B", location: "20.204", priority: .high),
-        .init(id: 1133, due: Self.makeDate("2025-6-30"), subject: "Projector power cable not working", status: .completed, campus: "Campus B", location: "25.107", priority: .medium),
+        .init(id: 1133, due: Self.makeDate("2024-06-30"), subject: "Projector power cable not working", status: .completed, campus: "Campus B", location: "25.107", priority: .medium),
         .init(id: 1203, due: Self.makeDate("2025-11-30"), subject: "Light switch stuck in Office 26.110", status: .assigned, campus: "Campus A", location: "26.110", priority: .low)
     ]
 
@@ -132,7 +132,7 @@ final class MyTasksViewController: UIViewController, UITableViewDataSource, UITa
     }
 }
 
-// MARK: - Custom Cell (inside same file to minimize files)
+// MARK: - Custom Cell
 final class TaskTicketCell: UITableViewCell {
 
     static let reuseID = "TaskTicketCell"
@@ -173,7 +173,7 @@ final class TaskTicketCell: UITableViewCell {
     private func buildUI() {
         // Card
         card.translatesAutoresizingMaskIntoConstraints = false
-        card.backgroundColor = .secondarySystemBackground
+        card.backgroundColor = .secondarySystemFill
         card.layer.cornerRadius = 12
         card.layer.shadowColor = UIColor.black.cgColor
         card.layer.shadowOpacity = 0.08
@@ -191,15 +191,15 @@ final class TaskTicketCell: UITableViewCell {
 
         // Left strip
         leftStrip.translatesAutoresizingMaskIntoConstraints = false
-        leftStrip.backgroundColor = .systemBlue
-        leftStrip.layer.cornerRadius = 12
+        leftStrip.backgroundColor = UIColor(named: "LogoBlue")?.withAlphaComponent(1.0) ?? .systemBlue
+        leftStrip.layer.cornerRadius = 8
         card.addSubview(leftStrip)
 
         NSLayoutConstraint.activate([
             leftStrip.leadingAnchor.constraint(equalTo: card.leadingAnchor),
             leftStrip.topAnchor.constraint(equalTo: card.topAnchor),
             leftStrip.bottomAnchor.constraint(equalTo: card.bottomAnchor),
-            leftStrip.widthAnchor.constraint(equalToConstant: 20)
+            leftStrip.widthAnchor.constraint(equalToConstant: 34)
         ])
 
         // Priority icon (SF Symbol)
