@@ -42,9 +42,9 @@ final class MyTasksViewController: UIViewController, UITableViewDataSource, UITa
     private lazy var tickets: [TicketUI] = [
         .init(id: 4325, due: Self.makeDate("2025-10-25"), subject: "Light switch broken", status: .inProgress, campus: "Campus A", location: "19.120", priority: .high),
         .init(id: 1022, due: Self.makeDate("2025-12-25"), subject: "Damaged wall socket in Lab 3 (needs replacement)", status: .assigned, campus: "Campus A", location: "5.17", priority: .low),
-        .init(id: 1100, due: Self.makeDate("2025-10-25"), subject: "Flickering light in Room 104", status: .completed, campus: "Campus A", location: "19.104", priority: .medium),
+        .init(id: 1100, due: Self.makeDate("2025-1-25"), subject: "Flickering light in Room 104", status: .completed, campus: "Campus A", location: "19.104", priority: .medium),
         .init(id: 1120, due: Self.makeDate("2025-09-30"), subject: "Power outage in Lab 20.204", status: .inProgress, campus: "Campus B", location: "20.204", priority: .high),
-        .init(id: 1133, due: Self.makeDate("2025-10-30"), subject: "Projector power cable not working", status: .completed, campus: "Campus B", location: "25.107", priority: .medium),
+        .init(id: 1133, due: Self.makeDate("2025-6-30"), subject: "Projector power cable not working", status: .completed, campus: "Campus B", location: "25.107", priority: .medium),
         .init(id: 1203, due: Self.makeDate("2025-11-30"), subject: "Light switch stuck in Office 26.110", status: .assigned, campus: "Campus A", location: "26.110", priority: .low)
     ]
 
@@ -154,8 +154,8 @@ final class TaskTicketCell: UITableViewCell {
 
     private let priorityIcon = UIImageView()
 
-    private let vStack = UIStackView()
     private let topRow = UIStackView()
+    private let contentStack = UIStackView()
     private let subjectStack = UIStackView()
     private let statusRow = UIStackView()
     private let locationRow = UIStackView()
@@ -209,16 +209,23 @@ final class TaskTicketCell: UITableViewCell {
         card.addSubview(priorityIcon)
 
         NSLayoutConstraint.activate([
-            priorityIcon.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
-            priorityIcon.centerYAnchor.constraint(equalTo: card.centerYAnchor),
+            priorityIcon.topAnchor.constraint(greaterThanOrEqualTo: card.topAnchor, constant: 52),
+            priorityIcon.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -20),
             priorityIcon.widthAnchor.constraint(equalToConstant: 66),
             priorityIcon.heightAnchor.constraint(equalToConstant: 66)
         ])
 
         // Labels config
         ticketIdLabel.font = .systemFont(ofSize: 15, weight: .semibold)
+        ticketIdLabel.numberOfLines = 1
+        ticketIdLabel.lineBreakMode = .byTruncatingTail
+        ticketIdLabel.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        ticketIdLabel.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+
         dueLabel.font = .systemFont(ofSize: 14, weight: .semibold)
-        dueLabel.textAlignment = .right
+        dueLabel.setContentHuggingPriority(.required, for: .horizontal)
+        dueLabel.setContentCompressionResistancePriority(.required, for: .horizontal)
+        dueLabel.textAlignment = .left
 
         subjectTitleLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         subjectTitleLabel.text = "Subject:"
@@ -272,22 +279,32 @@ final class TaskTicketCell: UITableViewCell {
         locationRow.addArrangedSubview(locationIcon)
         locationRow.addArrangedSubview(locationLabel)
 
-        vStack.axis = .vertical
-        vStack.spacing = 10
-        vStack.translatesAutoresizingMaskIntoConstraints = false
-        vStack.addArrangedSubview(topRow)
-        vStack.addArrangedSubview(subjectStack)
-        vStack.addArrangedSubview(statusRow)
-        vStack.addArrangedSubview(locationRow)
+        // contentStack holds everything EXCEPT the topRow
+        contentStack.axis = .vertical
+        contentStack.spacing = 10
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        contentStack.addArrangedSubview(subjectStack)
+        contentStack.addArrangedSubview(statusRow)
+        contentStack.addArrangedSubview(locationRow)
 
-        card.addSubview(vStack)
+        card.addSubview(topRow)
+        card.addSubview(contentStack)
+
+        topRow.translatesAutoresizingMaskIntoConstraints = false
 
         NSLayoutConstraint.activate([
-            vStack.leadingAnchor.constraint(equalTo: leftStrip.trailingAnchor, constant: 16),
-            vStack.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
-            vStack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -14),
-            vStack.trailingAnchor.constraint(equalTo: priorityIcon.leadingAnchor, constant: -12)
+            // Top row uses FULL width (so it won’t be squeezed by the priority icon)
+             topRow.leadingAnchor.constraint(equalTo: leftStrip.trailingAnchor, constant: 16),
+             topRow.topAnchor.constraint(equalTo: card.topAnchor, constant: 14),
+             topRow.trailingAnchor.constraint(equalTo: card.trailingAnchor, constant: -14),
+
+             // Content respects the priority icon space
+             contentStack.leadingAnchor.constraint(equalTo: leftStrip.trailingAnchor, constant: 16),
+             contentStack.topAnchor.constraint(equalTo: topRow.bottomAnchor, constant: 10),
+             contentStack.trailingAnchor.constraint(equalTo: priorityIcon.leadingAnchor, constant: -12),
+             contentStack.bottomAnchor.constraint(lessThanOrEqualTo: card.bottomAnchor, constant: -14)
         ])
+        
     }
 
     func configure(ticket: MyTasksViewController.TicketUI, overdue: Bool) {
