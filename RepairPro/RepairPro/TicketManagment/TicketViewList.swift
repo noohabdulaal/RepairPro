@@ -231,6 +231,27 @@ class TicketViewList: UIViewController {
         
         print("✅ FINAL FILTERED COUNT: \(filteredTickets.count) tickets")
         
+        // ⭐ SORT: Unassigned tickets first, then by due date
+        filteredTickets.sort { ticket1, ticket2 in
+            let isUnassigned1 = ticket1.displayTechnicianName == "Unassigned"
+            let isUnassigned2 = ticket2.displayTechnicianName == "Unassigned"
+            
+            // If one is unassigned and the other isn't, unassigned comes first
+            if isUnassigned1 && !isUnassigned2 {
+                return true
+            } else if !isUnassigned1 && isUnassigned2 {
+                return false
+            }
+            
+            // If both have same assignment status, sort by due date (earliest first)
+            let formatter = ISO8601DateFormatter()
+            let date1 = formatter.date(from: ticket1.due) ?? Date.distantFuture
+            let date2 = formatter.date(from: ticket2.due) ?? Date.distantFuture
+            return date1 < date2
+        }
+        
+        print("📌 Sorted: Unassigned tickets moved to top")
+        
         displayTickets(filteredTickets)
     }
 
@@ -248,10 +269,10 @@ class TicketViewList: UIViewController {
         if ticket.displayTechnicianName == "Unassigned" {
             // Add bright electric border
             containerView.layer.borderWidth = 2
-            containerView.layer.borderColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1).cgColor
+            containerView.layer.borderColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1).cgColor
             
             // Add electric glow
-            containerView.layer.shadowColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1).cgColor
+            containerView.layer.shadowColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1).cgColor
             containerView.layer.shadowOffset = .zero
             containerView.layer.shadowRadius = 6
             containerView.layer.shadowOpacity = 0.6
@@ -411,7 +432,7 @@ class TicketViewList: UIViewController {
             let badge = UILabel()
             badge.text = "New Ticket"
             badge.font = .systemFont(ofSize: 13, weight: .bold)
-            badge.textColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1) // #007AFF (blue)
+            badge.textColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1) // #00476F (dark blue)
             badge.textAlignment = .right
             badge.translatesAutoresizingMaskIntoConstraints = false
             containerView.addSubview(badge)

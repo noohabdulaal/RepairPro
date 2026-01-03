@@ -341,7 +341,7 @@ class FeedbackViewList: UIViewController {
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(dateLabel)
         
-        // Description Label and Text - REDESIGNED
+        // Description Label and Text
         let descLabel = UILabel()
         descLabel.text = "Description:"
         descLabel.font = .systemFont(ofSize: 14, weight: .semibold)
@@ -350,22 +350,21 @@ class FeedbackViewList: UIViewController {
         cardView.addSubview(descLabel)
         
         let descText = UILabel()
-        // Check if description is empty or "none" or "No description provided"
         let hasValidDescription = !feedback.description.isEmpty &&
                                   feedback.description != "none" &&
                                   feedback.description != "No description provided"
         descText.text = hasValidDescription ? feedback.description : "No description provided"
-        descText.font = .systemFont(ofSize: 14, weight: .regular)  // Slightly larger font
-        descText.textColor = hasValidDescription ? .label : .systemGray2  // Darker for visibility
-        descText.numberOfLines = 2  // Changed from 3 to 2 lines
+        descText.font = .systemFont(ofSize: 14, weight: .regular)
+        descText.textColor = hasValidDescription ? .label : .systemGray2
+        descText.numberOfLines = 2
         descText.lineBreakMode = .byTruncatingTail
         descText.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(descText)
         
-        // Status Icon
+        // Status Icon - WITH COLOR
         let statusIcon = UIImageView()
         statusIcon.image = UIImage(systemName: "gearshape.fill")
-        statusIcon.tintColor = feedback.statusColor
+        statusIcon.tintColor = feedback.categoryColor
         statusIcon.contentMode = .scaleAspectFit
         statusIcon.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(statusIcon)
@@ -378,10 +377,10 @@ class FeedbackViewList: UIViewController {
         statusLabel.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(statusLabel)
         
-        // Location Icon
+        // Location Icon - WITH COLOR (BLUE)
         let locationIcon = UIImageView()
-        locationIcon.image = UIImage(systemName: "info.circle")
-        locationIcon.tintColor = .systemGray
+        locationIcon.image = UIImage(systemName: "info.circle.fill")
+        locationIcon.tintColor = .systemBlue
         locationIcon.contentMode = .scaleAspectFit
         locationIcon.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(locationIcon)
@@ -394,10 +393,10 @@ class FeedbackViewList: UIViewController {
         locationLabel.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(locationLabel)
         
-        // Technician Icon
+        // Technician Icon - WITH COLOR (ORANGE)
         let techIcon = UIImageView()
-        techIcon.image = UIImage(systemName: "wrench.and.screwdriver")
-        techIcon.tintColor = .systemGray
+        techIcon.image = UIImage(systemName: "wrench.and.screwdriver.fill")
+        techIcon.tintColor = .systemOrange
         techIcon.contentMode = .scaleAspectFit
         techIcon.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(techIcon)
@@ -430,22 +429,34 @@ class FeedbackViewList: UIViewController {
         statusCircle.translatesAutoresizingMaskIntoConstraints = false
         cardView.addSubview(statusCircle)
         
-        let exclamation = UILabel()
-        exclamation.text = "!"
-        exclamation.font = .boldSystemFont(ofSize: 32)
-        exclamation.textColor = .white
-        exclamation.textAlignment = .center
-        exclamation.translatesAutoresizingMaskIntoConstraints = false
-        statusCircle.addSubview(exclamation)
+        let tickLabel = UILabel()
+        tickLabel.text = "✓"
+        tickLabel.font = .boldSystemFont(ofSize: 30)
+        tickLabel.textColor = .white
+        tickLabel.textAlignment = .center
+        tickLabel.translatesAutoresizingMaskIntoConstraints = false
+        statusCircle.addSubview(tickLabel)
+        
+        // Ticket image view
+        let ticketImageView = UIImageView()
+        ticketImageView.contentMode = .scaleAspectFill
+        ticketImageView.clipsToBounds = true
+        ticketImageView.layer.cornerRadius = 8
+        ticketImageView.backgroundColor = .systemGray4
+        ticketImageView.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(ticketImageView)
+        
+        // Load image from Cloudinary
+        loadImageForFeedback(into: ticketImageView, feedbackID: feedback.feedback_id)
         
         // Constraints
         NSLayoutConstraint.activate([
-            cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 215),  // Reduced from 240
+            cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 215),
             
             colorBar.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
             colorBar.topAnchor.constraint(equalTo: cardView.topAnchor),
             colorBar.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
-            colorBar.widthAnchor.constraint(equalToConstant: 20),
+            colorBar.widthAnchor.constraint(equalToConstant: 30),
             
             ticketIDLabel.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
             ticketIDLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
@@ -457,12 +468,12 @@ class FeedbackViewList: UIViewController {
             descLabel.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 12),
             
             descText.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
-            descText.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -16),
+            descText.trailingAnchor.constraint(equalTo: ticketImageView.leadingAnchor, constant: -16),
             descText.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 4),
-            descText.heightAnchor.constraint(greaterThanOrEqualToConstant: 28),  // Reduced from 40 to 28
+            descText.heightAnchor.constraint(greaterThanOrEqualToConstant: 28),
             
             statusIcon.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
-            statusIcon.topAnchor.constraint(equalTo: descText.bottomAnchor, constant: 10),  // Reduced from 16 to 10
+            statusIcon.topAnchor.constraint(equalTo: descText.bottomAnchor, constant: 10),
             statusIcon.widthAnchor.constraint(equalToConstant: 16),
             statusIcon.heightAnchor.constraint(equalToConstant: 16),
             
@@ -498,8 +509,13 @@ class FeedbackViewList: UIViewController {
             statusCircle.widthAnchor.constraint(equalToConstant: 60),
             statusCircle.heightAnchor.constraint(equalToConstant: 60),
             
-            exclamation.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
-            exclamation.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor)
+            tickLabel.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
+            tickLabel.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
+            
+            ticketImageView.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -12),
+            ticketImageView.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor),
+            ticketImageView.widthAnchor.constraint(equalToConstant: 60),
+            ticketImageView.heightAnchor.constraint(equalToConstant: 60)
         ])
         
         // Tap gesture
@@ -551,6 +567,31 @@ class FeedbackViewList: UIViewController {
             print("❌ No navigation controller - presenting modally")
             present(detailVC, animated: true)
         }
+    }
+    
+    func loadImageForFeedback(into imageView: UIImageView, feedbackID: Int) {
+        // Array of default images to select from (same as normal tickets)
+        let defaultImageURLs = [
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
+        ]
+        
+        // Use feedback ID to rotate through images
+        let imageIndex = feedbackID % defaultImageURLs.count
+        let selectedImageURL = defaultImageURLs[imageIndex]
+        
+        loadRemoteImage(from: selectedImageURL, into: imageView)
+    }
+    
+    func loadRemoteImage(from urlString: String, into imageView: UIImageView) {
+        guard let url = URL(string: urlString) else { return }
+        URLSession.shared.dataTask(with: url) { data, _, _ in
+            guard let data = data, let image = UIImage(data: data) else { return }
+            DispatchQueue.main.async {
+                imageView.image = image
+            }
+        }.resume()
     }
     
     func showErrorAlert(message: String) {

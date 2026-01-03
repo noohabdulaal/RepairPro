@@ -96,7 +96,7 @@ class FeedbackDetailViewController: UIViewController {
         let locationView = createInfoRow(title: "Location:", value: locationValue, valueColor: UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1))
         contentStackView.addArrangedSubview(locationView)
         
-        // MARK: - First Image
+        // MARK: - Single Image (ONLY ONE IMAGE NOW)
         if let imageUrls = feedback.image_urls, !imageUrls.isEmpty {
             imageURLs = imageUrls
             let imageView1 = createImageSection(imageUrl: imageUrls[0], index: 0)
@@ -121,16 +121,7 @@ class FeedbackDetailViewController: UIViewController {
         let notesView = createMultiLineSection(title: "Notes", content: notesContent)
         contentStackView.addArrangedSubview(notesView)
         
-        // MARK: - Second Image
-        if let imageUrls = feedback.image_urls, imageUrls.count > 1 {
-            let imageView2 = createImageSection(imageUrl: imageUrls[1], index: 1, showLabel: false)
-            contentStackView.addArrangedSubview(imageView2)
-        } else {
-            // Use random placeholder image
-            let randomPlaceholder = placeholderImageURLs.randomElement() ?? placeholderImageURLs[1]
-            let placeholderView2 = createImageSection(imageUrl: randomPlaceholder, index: -1, showLabel: false, isPlaceholder: true)
-            contentStackView.addArrangedSubview(placeholderView2)
-        }
+        // REMOVED SECOND IMAGE - Only one image now
         
         // MARK: - Feedback/Rating
         let feedbackText = "Happy with the result. The light flickering stopped."
@@ -319,7 +310,7 @@ class FeedbackDetailViewController: UIViewController {
         }
         
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFill
+        imageView.contentMode = .scaleAspectFit  // CHANGED FROM scaleAspectFill TO scaleAspectFit
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
         imageView.backgroundColor = .systemGray6
