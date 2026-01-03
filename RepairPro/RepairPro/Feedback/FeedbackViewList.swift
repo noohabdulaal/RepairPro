@@ -1,7 +1,6 @@
 //
 //  FeedbackViewList.swift
-//  Ticket-style feedback list with technician and date filters
-//  ENHANCED VERSION - Smaller cards, modern filter chips
+//  WORKING VERSION - With proper technician filtering
 //
 
 import UIKit
@@ -42,46 +41,35 @@ class FeedbackViewList: UIViewController {
         filterChipsContainer.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(filterChipsContainer)
         
-        // Date filter chip - Modern design without emoji
+        // Date filter chip
         var dateConfig = UIButton.Configuration.filled()
         dateConfig.title = "Past 3 days"
         dateConfig.baseForegroundColor = .white
         dateConfig.baseBackgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
         dateConfig.cornerStyle = .capsule
-        dateConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20)
-        dateConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 14, weight: .semibold)
-            return outgoing
-        }
+        dateConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
         
-        // Add chevron down icon
-        dateConfig.image = UIImage(systemName: "chevron.down")
+        let chevronConfig = UIImage.SymbolConfiguration(pointSize: 12, weight: .semibold)
+        let chevronImage = UIImage(systemName: "chevron.down", withConfiguration: chevronConfig)
+        dateConfig.image = chevronImage
         dateConfig.imagePlacement = .trailing
-        dateConfig.imagePadding = 6
+        dateConfig.imagePadding = 8
         
         dateFilterButton.configuration = dateConfig
         dateFilterButton.translatesAutoresizingMaskIntoConstraints = false
         dateFilterButton.addTarget(self, action: #selector(dateFilterTapped), for: .touchUpInside)
         filterChipsContainer.addSubview(dateFilterButton)
         
-        // Technician filter chip - Modern design without emoji
+        // Technician filter chip
         var techConfig = UIButton.Configuration.filled()
         techConfig.title = "All Technicians"
         techConfig.baseForegroundColor = .white
         techConfig.baseBackgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
         techConfig.cornerStyle = .capsule
-        techConfig.contentInsets = NSDirectionalEdgeInsets(top: 10, leading: 20, bottom: 10, trailing: 20)
-        techConfig.titleTextAttributesTransformer = UIConfigurationTextAttributesTransformer { incoming in
-            var outgoing = incoming
-            outgoing.font = .systemFont(ofSize: 14, weight: .semibold)
-            return outgoing
-        }
-        
-        // Add chevron down icon
-        techConfig.image = UIImage(systemName: "chevron.down")
+        techConfig.contentInsets = NSDirectionalEdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16)
+        techConfig.image = chevronImage
         techConfig.imagePlacement = .trailing
-        techConfig.imagePadding = 6
+        techConfig.imagePadding = 8
         
         technicianFilterButton.configuration = techConfig
         technicianFilterButton.translatesAutoresizingMaskIntoConstraints = false
@@ -89,7 +77,7 @@ class FeedbackViewList: UIViewController {
         filterChipsContainer.addSubview(technicianFilterButton)
         
         NSLayoutConstraint.activate([
-            filterChipsContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 12),
+            filterChipsContainer.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 8),
             filterChipsContainer.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
             filterChipsContainer.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             filterChipsContainer.heightAnchor.constraint(equalToConstant: 50),
@@ -116,114 +104,149 @@ class FeedbackViewList: UIViewController {
         ])
         
         stackView.axis = .vertical
-        stackView.spacing = 12  // Reduced from 16
+        stackView.spacing = 12
         stackView.alignment = .fill
         stackView.distribution = .fill
         
         NSLayoutConstraint.activate([
-            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 12),  // Reduced from 16
+            stackView.topAnchor.constraint(equalTo: scrollView.topAnchor, constant: 12),
             stackView.leadingAnchor.constraint(equalTo: scrollView.leadingAnchor, constant: 16),
             stackView.trailingAnchor.constraint(equalTo: scrollView.trailingAnchor, constant: -16),
-            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -12),  // Reduced from -16
+            stackView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor, constant: -12),
             stackView.widthAnchor.constraint(equalTo: scrollView.widthAnchor, constant: -32)
         ])
     }
     
     @objc func dateFilterTapped() {
-        let alert = UIAlertController(title: "Filter by Date", message: nil, preferredStyle: .actionSheet)
+        print("📅 Date filter button tapped")
         
-        let dateOptions = ["All Time", "Past 24 hours", "Past 3 days", "Past week", "Past month"]
+        let dateModal = DateFilterModal()
+        dateModal.selectedDate = currentDateFilter
         
-        for option in dateOptions {
-            alert.addAction(UIAlertAction(title: option, style: .default) { [weak self] _ in
-                self?.currentDateFilter = option
-                self?.dateFilterButton.configuration?.title = option
-                self?.applyCurrentFilters()
-            })
+        dateModal.applyFilter = { [weak self] selectedDate in
+            guard let self = self else { return }
+            
+            print("✅ Date filter applied: \(selectedDate)")
+            
+            // Update current filter
+            self.currentDateFilter = selectedDate
+            
+            // Update button title
+            var config = self.dateFilterButton.configuration
+            config?.title = selectedDate
+            self.dateFilterButton.configuration = config
+            
+            // Apply filters
+            self.applyCurrentFilters()
         }
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
+        // Present modal
+        dateModal.modalPresentationStyle = .overFullScreen
+        dateModal.modalTransitionStyle = .crossDissolve
+        self.present(dateModal, animated: false)
     }
     
     @objc func technicianFilterTapped() {
-        let alert = UIAlertController(title: "Filter by Technician", message: nil, preferredStyle: .actionSheet)
+        print("🔘 Technician filter button tapped")
         
+        let filterModal = FeedbackFilterModal()
+        
+        // Get unique technician names
         let technicians = Set(feedbackArray.map { $0.user_name })
+        filterModal.availableTechnicians = Array(technicians).sorted()
         
-        alert.addAction(UIAlertAction(title: "All Technicians", style: .default) { [weak self] _ in
-            self?.currentTechnicianFilter = nil
-            self?.technicianFilterButton.configuration?.title = "All Technicians"
-            self?.applyCurrentFilters()
-        })
+        print("📋 Available technicians: \(filterModal.availableTechnicians)")
+        print("🎯 Current filter: \(currentTechnicianFilter ?? "None")")
         
-        for technician in technicians.sorted() {
-            alert.addAction(UIAlertAction(title: technician, style: .default) { [weak self] _ in
-                self?.currentTechnicianFilter = technician
-                self?.technicianFilterButton.configuration?.title = technician
-                self?.applyCurrentFilters()
-            })
+        // Set current selection
+        filterModal.selectedTechnician = currentTechnicianFilter ?? "All Technicians"
+        
+        // Handle filter application
+        filterModal.applyFilters = { [weak self] selectedTechnician in
+            guard let self = self else { return }
+            
+            print("✅ Filter applied! Selected: \(selectedTechnician ?? "All Technicians")")
+            
+            // Update the filter
+            self.currentTechnicianFilter = selectedTechnician
+            
+            // Update button title
+            let buttonTitle = selectedTechnician ?? "All Technicians"
+            print("🔄 Updating button to: \(buttonTitle)")
+            
+            var config = self.technicianFilterButton.configuration
+            config?.title = buttonTitle
+            self.technicianFilterButton.configuration = config
+            
+            // Apply filters
+            print("🔍 Applying filters now...")
+            self.applyCurrentFilters()
         }
         
-        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-        present(alert, animated: true)
+        // Present modal
+        filterModal.modalPresentationStyle = .overFullScreen
+        filterModal.modalTransitionStyle = .crossDissolve
+        self.present(filterModal, animated: false)
     }
     
-    // MARK: - Fetch Feedback from Firebase
     func fetchFeedback() {
-        print("🔍 Fetching from 'Feedback' collection...")
+        print("🔍 Fetching feedback...")
         
         db.collection("Feedback").order(by: "date_submitted", descending: true)
             .addSnapshotListener { [weak self] snapshot, error in
             guard let self = self else { return }
             
             if let error = error {
-                print("❌ FIREBASE ERROR: \(error.localizedDescription)")
+                print("❌ Error: \(error.localizedDescription)")
                 self.showErrorAlert(message: "Failed to load feedback.")
                 return
             }
             
             guard let snapshot = snapshot else {
-                print("❌ SNAPSHOT ERROR: No data received.")
+                print("❌ No snapshot")
                 return
             }
             
-            print("✅ Received \(snapshot.documents.count) feedback documents")
+            print("✅ Received \(snapshot.documents.count) documents")
             
             var feedbacks: [Feedback] = []
             
             for doc in snapshot.documents {
-                print("📄 Processing document: \(doc.documentID)")
-                print("📄 Document data: \(doc.data())")
-                
                 do {
                     let feedback = try doc.data(as: Feedback.self)
                     feedbacks.append(feedback)
-                    print("✅ Successfully decoded feedback ID: \(feedback.feedback_id), Title: \(feedback.title)")
+                    print("  ✓ Feedback \(feedback.feedback_id): \(feedback.user_name)")
                 } catch {
-                    print("❌ DECODING ERROR for \(doc.documentID): \(error)")
-                    print("❌ Error details: \(error.localizedDescription)")
+                    print("  ✗ Error decoding: \(error)")
                 }
             }
             
-            print("📊 Total feedbacks decoded: \(feedbacks.count)")
-            
             DispatchQueue.main.async {
                 self.feedbackArray = feedbacks
-                print("📊 feedbackArray count: \(self.feedbackArray.count)")
+                print("📊 Total feedbacks: \(feedbacks.count)")
                 self.applyCurrentFilters()
             }
         }
     }
     
-    // MARK: - Filtering
     func applyCurrentFilters() {
-        print("🔍 Applying filters...")
-        print("🔍 Starting with \(feedbackArray.count) feedbacks")
-        print("🔍 Current date filter: \(currentDateFilter)")
-        print("🔍 Current technician filter: \(currentTechnicianFilter ?? "None")")
+        print("\n🔍 === APPLYING FILTERS ===")
+        print("📊 Total feedbacks: \(feedbackArray.count)")
+        print("📅 Date filter: \(currentDateFilter)")
+        print("👤 Technician filter: \(currentTechnicianFilter ?? "None")")
         
         filteredFeedback = feedbackArray
+        
+        // Filter by technician FIRST
+        if let technician = currentTechnicianFilter, !technician.isEmpty {
+            let beforeCount = filteredFeedback.count
+            filteredFeedback = filteredFeedback.filter { feedback in
+                let match = feedback.user_name.lowercased() == technician.lowercased()
+                print("  Comparing '\(feedback.user_name)' with '\(technician)': \(match ? "✓" : "✗")")
+                return match
+            }
+            print("👤 After technician filter: \(beforeCount) → \(filteredFeedback.count)")
+        }
         
         // Filter by date
         if currentDateFilter != "All Time" {
@@ -234,12 +257,10 @@ class FeedbackViewList: UIViewController {
             filteredFeedback = filteredFeedback.filter { feedback in
                 let formatter = ISO8601DateFormatter()
                 guard let submittedDate = formatter.date(from: feedback.date_submitted) else {
-                    print("⚠️ Could not parse date for feedback \(feedback.feedback_id): \(feedback.date_submitted)")
                     return false
                 }
                 
                 let daysDiff = calendar.dateComponents([.day], from: submittedDate, to: now).day ?? 0
-                print("📅 Feedback \(feedback.feedback_id) date: \(feedback.date_submitted), Days ago: \(daysDiff)")
                 
                 switch currentDateFilter {
                 case "Past 24 hours":
@@ -255,315 +276,283 @@ class FeedbackViewList: UIViewController {
                 }
             }
             
-            print("🔍 After date filter: \(beforeCount) → \(filteredFeedback.count)")
+            print("📅 After date filter: \(beforeCount) → \(filteredFeedback.count)")
         }
         
-        // Filter by technician
-        if let technician = currentTechnicianFilter {
-            let beforeCount = filteredFeedback.count
-            filteredFeedback = filteredFeedback.filter {
-                $0.user_name.lowercased() == technician.lowercased()
-            }
-            print("🔍 After technician filter: \(beforeCount) → \(filteredFeedback.count)")
-        }
+        print("✅ Final count: \(filteredFeedback.count)")
+        print("======================\n")
         
-        print("✅ Final filtered count: \(filteredFeedback.count)")
         displayFeedback(filteredFeedback)
     }
     
     func displayFeedback(_ feedbacks: [Feedback]) {
-        print("🎨 Displaying \(feedbacks.count) feedback cards")
         stackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
         
         if feedbacks.isEmpty {
             showEmptyState()
         } else {
-            feedbacks.forEach {
-                print("🎨 Creating card for feedback ID: \($0.feedback_id)")
-                createFeedbackCard(for: $0)
-            }
+            feedbacks.forEach { createFeedbackCard(for: $0) }
         }
     }
     
     func showEmptyState() {
-        let emptyContainer = UIView()
-        emptyContainer.translatesAutoresizingMaskIntoConstraints = false
-        
-        let iconLabel = UILabel()
-        iconLabel.text = "📋"
-        iconLabel.font = .systemFont(ofSize: 50)  // Reduced from 60
-        iconLabel.textAlignment = .center
-        iconLabel.translatesAutoresizingMaskIntoConstraints = false
-        
         let emptyLabel = UILabel()
-        emptyLabel.text = "No feedback to display"
+        emptyLabel.text = "No feedback matches the selected filters"
         emptyLabel.textAlignment = .center
         emptyLabel.textColor = .systemGray
-        emptyLabel.font = .systemFont(ofSize: 16, weight: .medium)  // Reduced from 18
+        emptyLabel.font = .systemFont(ofSize: 16)
+        emptyLabel.numberOfLines = 0
         emptyLabel.translatesAutoresizingMaskIntoConstraints = false
+        stackView.addArrangedSubview(emptyLabel)
         
-        emptyContainer.addSubview(iconLabel)
-        emptyContainer.addSubview(emptyLabel)
-        
-        NSLayoutConstraint.activate([
-            iconLabel.centerXAnchor.constraint(equalTo: emptyContainer.centerXAnchor),
-            iconLabel.topAnchor.constraint(equalTo: emptyContainer.topAnchor, constant: 50),  // Reduced from 60
-            
-            emptyLabel.topAnchor.constraint(equalTo: iconLabel.bottomAnchor, constant: 16),
-            emptyLabel.centerXAnchor.constraint(equalTo: emptyContainer.centerXAnchor),
-            emptyLabel.bottomAnchor.constraint(equalTo: emptyContainer.bottomAnchor, constant: -50)  // Reduced from -60
-        ])
-        
-        stackView.addArrangedSubview(emptyContainer)
+        emptyLabel.heightAnchor.constraint(equalToConstant: 200).isActive = true
     }
     
-    // MARK: - Create Feedback Card (SMALLER SIZE)
     func createFeedbackCard(for feedback: Feedback) {
-        let containerView = UIView()
-        containerView.backgroundColor = .systemGray6
-        containerView.layer.cornerRadius = 12  // Reduced from 16
-        containerView.layer.shadowColor = UIColor.black.cgColor
-        containerView.layer.shadowOpacity = 0.08
-        containerView.layer.shadowRadius = 6  // Reduced from 8
-        containerView.layer.shadowOffset = CGSize(width: 0, height: 2)
-        containerView.translatesAutoresizingMaskIntoConstraints = false
+        let cardView = UIView()
+        cardView.backgroundColor = .systemBackground
+        cardView.layer.cornerRadius = 16
+        cardView.layer.shadowColor = UIColor.black.cgColor
+        cardView.layer.shadowOffset = CGSize(width: 0, height: 2)
+        cardView.layer.shadowRadius = 8
+        cardView.layer.shadowOpacity = 0.1
+        cardView.translatesAutoresizingMaskIntoConstraints = false
         
-        containerView.tag = feedback.feedback_id
-        let tap = UITapGestureRecognizer(target: self, action: #selector(feedbackTapped(_:)))
-        containerView.addGestureRecognizer(tap)
-        containerView.isUserInteractionEnabled = true
-        
-        // Left colored stripe
-        let leftStripe = UIView()
-        leftStripe.backgroundColor = feedback.categoryColor
-        leftStripe.layer.cornerRadius = 12  // Reduced from 16
-        leftStripe.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner]
-        leftStripe.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(leftStripe)
-        
-        // Content container
-        let contentContainer = UIView()
-        contentContainer.backgroundColor = .white
-        contentContainer.layer.cornerRadius = 10  // Reduced from 12
-        contentContainer.translatesAutoresizingMaskIntoConstraints = false
-        containerView.addSubview(contentContainer)
+        // Left color bar
+        let colorBar = UIView()
+        colorBar.backgroundColor = feedback.categoryColor
+        colorBar.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(colorBar)
         
         // Ticket ID
         let ticketIDLabel = UILabel()
         ticketIDLabel.text = "Ticket ID: \(feedback.feedback_id)"
-        ticketIDLabel.font = .systemFont(ofSize: 16, weight: .bold)  // Reduced from 18
+        ticketIDLabel.font = .systemFont(ofSize: 16, weight: .bold)
         ticketIDLabel.textColor = .label
         ticketIDLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(ticketIDLabel)
+        cardView.addSubview(ticketIDLabel)
         
         // Date
         let dateLabel = UILabel()
         dateLabel.text = feedback.formattedDate
-        dateLabel.font = .systemFont(ofSize: 13)  // Reduced from 15
-        dateLabel.textColor = .label
+        dateLabel.font = .systemFont(ofSize: 13)
+        dateLabel.textColor = .secondaryLabel
         dateLabel.textAlignment = .right
         dateLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(dateLabel)
+        cardView.addSubview(dateLabel)
         
-        // Description label
+        // Description Label and Text - REDESIGNED
         let descLabel = UILabel()
         descLabel.text = "Description:"
-        descLabel.font = .systemFont(ofSize: 13, weight: .bold)  // Reduced from 15
+        descLabel.font = .systemFont(ofSize: 14, weight: .semibold)
         descLabel.textColor = .label
         descLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(descLabel)
+        cardView.addSubview(descLabel)
         
-        // Description text
         let descText = UILabel()
-        descText.text = feedback.description
-        descText.font = .systemFont(ofSize: 13)  // Reduced from 15
-        descText.textColor = .label
-        descText.numberOfLines = 2  // Limit to 2 lines to keep card smaller
+        // Check if description is empty or "none" or "No description provided"
+        let hasValidDescription = !feedback.description.isEmpty &&
+                                  feedback.description != "none" &&
+                                  feedback.description != "No description provided"
+        descText.text = hasValidDescription ? feedback.description : "No description provided"
+        descText.font = .systemFont(ofSize: 14, weight: .regular)  // Slightly larger font
+        descText.textColor = hasValidDescription ? .label : .systemGray2  // Darker for visibility
+        descText.numberOfLines = 2  // Changed from 3 to 2 lines
+        descText.lineBreakMode = .byTruncatingTail
         descText.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(descText)
+        cardView.addSubview(descText)
         
-        // Status row
-        let statusStack = UIStackView()
-        statusStack.axis = .horizontal
-        statusStack.spacing = 6  // Reduced from 8
-        statusStack.alignment = .center
-        statusStack.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(statusStack)
-        
-        let statusIcon = UIImageView(image: UIImage(systemName: "gearshape"))
-        statusIcon.tintColor = .label
+        // Status Icon
+        let statusIcon = UIImageView()
+        statusIcon.image = UIImage(systemName: "gearshape.fill")
+        statusIcon.tintColor = feedback.statusColor
+        statusIcon.contentMode = .scaleAspectFit
         statusIcon.translatesAutoresizingMaskIntoConstraints = false
-        statusIcon.widthAnchor.constraint(equalToConstant: 16).isActive = true  // Reduced from 18
-        statusIcon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        cardView.addSubview(statusIcon)
         
+        // Status Label
         let statusLabel = UILabel()
         statusLabel.text = "Status: \(feedback.status)"
-        statusLabel.font = .systemFont(ofSize: 13)  // Reduced from 15
+        statusLabel.font = .systemFont(ofSize: 13)
         statusLabel.textColor = .label
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(statusLabel)
         
-        statusStack.addArrangedSubview(statusIcon)
-        statusStack.addArrangedSubview(statusLabel)
+        // Location Icon
+        let locationIcon = UIImageView()
+        locationIcon.image = UIImage(systemName: "info.circle")
+        locationIcon.tintColor = .systemGray
+        locationIcon.contentMode = .scaleAspectFit
+        locationIcon.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(locationIcon)
         
-        // Campus row
-        let campusStack = UIStackView()
-        campusStack.axis = .horizontal
-        campusStack.spacing = 6  // Reduced from 8
-        campusStack.alignment = .center
-        campusStack.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(campusStack)
+        // Location Label
+        let locationLabel = UILabel()
+        locationLabel.text = feedback.campus ?? "Not specified"
+        locationLabel.font = .systemFont(ofSize: 13)
+        locationLabel.textColor = .secondaryLabel
+        locationLabel.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(locationLabel)
         
-        let campusIcon = UIImageView(image: UIImage(systemName: "mappin.circle"))
-        campusIcon.tintColor = .label
-        campusIcon.translatesAutoresizingMaskIntoConstraints = false
-        campusIcon.widthAnchor.constraint(equalToConstant: 16).isActive = true  // Reduced from 18
-        campusIcon.heightAnchor.constraint(equalToConstant: 16).isActive = true
-        
-        let campusLabel = UILabel()
-        campusLabel.text = feedback.campus ?? "Not specified"
-        campusLabel.font = .systemFont(ofSize: 13)  // Reduced from 15
-        campusLabel.textColor = .label
-        
-        campusStack.addArrangedSubview(campusIcon)
-        campusStack.addArrangedSubview(campusLabel)
-        
-        // Technician row
-        let techStack = UIStackView()
-        techStack.axis = .horizontal
-        techStack.spacing = 6  // Reduced from 8
-        techStack.alignment = .center
-        techStack.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(techStack)
-        
-        let techIcon = UIImageView(image: UIImage(systemName: "wrench.and.screwdriver"))
-        techIcon.tintColor = .label
+        // Technician Icon
+        let techIcon = UIImageView()
+        techIcon.image = UIImage(systemName: "wrench.and.screwdriver")
+        techIcon.tintColor = .systemGray
+        techIcon.contentMode = .scaleAspectFit
         techIcon.translatesAutoresizingMaskIntoConstraints = false
-        techIcon.widthAnchor.constraint(equalToConstant: 16).isActive = true  // Reduced from 18
-        techIcon.heightAnchor.constraint(equalToConstant: 16).isActive = true
+        cardView.addSubview(techIcon)
         
+        // Technician Label
         let techLabel = UILabel()
         techLabel.text = "Technician: \(feedback.user_name)"
-        techLabel.font = .systemFont(ofSize: 13)  // Reduced from 15
+        techLabel.font = .systemFont(ofSize: 13)
         techLabel.textColor = .label
+        techLabel.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(techLabel)
         
-        techStack.addArrangedSubview(techIcon)
-        techStack.addArrangedSubview(techLabel)
+        // Rating stars (5 stars in a row)
+        let starsStack = createStarsView(rating: feedback.safeRating)
+        starsStack.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(starsStack)
         
-        // Star rating
-        let starStack = UIStackView()
-        starStack.axis = .horizontal
-        starStack.spacing = 3  // Reduced from 4
-        starStack.alignment = .center
-        starStack.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(starStack)
+        // Status text below stars
+        let ratingText = UILabel()
+        ratingText.text = feedback.status.lowercased()
+        ratingText.font = .systemFont(ofSize: 12)
+        ratingText.textColor = .systemGray
+        ratingText.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(ratingText)
         
-        for i in 1...5 {
-            let starImageView = UIImageView()
-            starImageView.contentMode = .scaleAspectFit
-            starImageView.tintColor = UIColor(red: 255/255, green: 193/255, blue: 7/255, alpha: 1)
-            
-            if i <= feedback.safeRating {
-                starImageView.image = UIImage(systemName: "star.fill")
-            } else {
-                starImageView.image = UIImage(systemName: "star")
-                starImageView.tintColor = UIColor.systemGray4
-            }
-            
-            starImageView.translatesAutoresizingMaskIntoConstraints = false
-            starImageView.widthAnchor.constraint(equalToConstant: 20).isActive = true  // Reduced from 24
-            starImageView.heightAnchor.constraint(equalToConstant: 20).isActive = true
-            
-            starStack.addArrangedSubview(starImageView)
-        }
+        // Status circle
+        let statusCircle = UIView()
+        statusCircle.backgroundColor = feedback.categoryColor
+        statusCircle.layer.cornerRadius = 30
+        statusCircle.translatesAutoresizingMaskIntoConstraints = false
+        cardView.addSubview(statusCircle)
         
-        // Comment
-        let commentLabel = UILabel()
-        commentLabel.text = feedback.title
-        commentLabel.font = .systemFont(ofSize: 12)  // Reduced from 14
-        commentLabel.textColor = .secondaryLabel
-        commentLabel.numberOfLines = 1  // Limit to 1 line to keep card smaller
-        commentLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(commentLabel)
-        
-        // Priority circle
-        let priorityCircle = UIView()
-        priorityCircle.backgroundColor = feedback.categoryColor
-        priorityCircle.layer.cornerRadius = 24  // Reduced from 30
-        priorityCircle.translatesAutoresizingMaskIntoConstraints = false
-        contentContainer.addSubview(priorityCircle)
-        
-        let exclamationLabel = UILabel()
-        exclamationLabel.text = "!"
-        exclamationLabel.font = .systemFont(ofSize: 28, weight: .bold)  // Reduced from 32
-        exclamationLabel.textColor = .white
-        exclamationLabel.textAlignment = .center
-        exclamationLabel.translatesAutoresizingMaskIntoConstraints = false
-        priorityCircle.addSubview(exclamationLabel)
+        let exclamation = UILabel()
+        exclamation.text = "!"
+        exclamation.font = .boldSystemFont(ofSize: 32)
+        exclamation.textColor = .white
+        exclamation.textAlignment = .center
+        exclamation.translatesAutoresizingMaskIntoConstraints = false
+        statusCircle.addSubview(exclamation)
         
         // Constraints
         NSLayoutConstraint.activate([
-            leftStripe.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-            leftStripe.topAnchor.constraint(equalTo: containerView.topAnchor),
-            leftStripe.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            leftStripe.widthAnchor.constraint(equalToConstant: 50),  // Reduced from 60
+            cardView.heightAnchor.constraint(greaterThanOrEqualToConstant: 215),  // Reduced from 240
             
-            contentContainer.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 6),  // Reduced from 8
-            contentContainer.leadingAnchor.constraint(equalTo: leftStripe.trailingAnchor, constant: 6),  // Reduced from 8
-            contentContainer.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -6),  // Reduced from -8
-            contentContainer.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),  // Reduced from -8
+            colorBar.leadingAnchor.constraint(equalTo: cardView.leadingAnchor),
+            colorBar.topAnchor.constraint(equalTo: cardView.topAnchor),
+            colorBar.bottomAnchor.constraint(equalTo: cardView.bottomAnchor),
+            colorBar.widthAnchor.constraint(equalToConstant: 20),
             
-            ticketIDLabel.topAnchor.constraint(equalTo: contentContainer.topAnchor, constant: 12),  // Reduced from 16
-            ticketIDLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            ticketIDLabel.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            ticketIDLabel.topAnchor.constraint(equalTo: cardView.topAnchor, constant: 16),
             
+            dateLabel.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
             dateLabel.centerYAnchor.constraint(equalTo: ticketIDLabel.centerYAnchor),
-            dateLabel.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),  // Reduced from -16
             
-            descLabel.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 10),  // Reduced from 12
-            descLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            descLabel.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            descLabel.topAnchor.constraint(equalTo: ticketIDLabel.bottomAnchor, constant: 12),
             
-            descText.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 3),  // Reduced from 4
-            descText.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
-            descText.trailingAnchor.constraint(equalTo: priorityCircle.leadingAnchor, constant: -10),  // Reduced from -12
+            descText.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            descText.trailingAnchor.constraint(equalTo: statusCircle.leadingAnchor, constant: -16),
+            descText.topAnchor.constraint(equalTo: descLabel.bottomAnchor, constant: 4),
+            descText.heightAnchor.constraint(greaterThanOrEqualToConstant: 28),  // Reduced from 40 to 28
             
-            statusStack.topAnchor.constraint(equalTo: descText.bottomAnchor, constant: 8),  // Reduced from 12
-            statusStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            statusIcon.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            statusIcon.topAnchor.constraint(equalTo: descText.bottomAnchor, constant: 10),  // Reduced from 16 to 10
+            statusIcon.widthAnchor.constraint(equalToConstant: 16),
+            statusIcon.heightAnchor.constraint(equalToConstant: 16),
             
-            campusStack.topAnchor.constraint(equalTo: statusStack.bottomAnchor, constant: 6),  // Reduced from 8
-            campusStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            statusLabel.leadingAnchor.constraint(equalTo: statusIcon.trailingAnchor, constant: 6),
+            statusLabel.centerYAnchor.constraint(equalTo: statusIcon.centerYAnchor),
             
-            techStack.topAnchor.constraint(equalTo: campusStack.bottomAnchor, constant: 6),  // Reduced from 8
-            techStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            locationIcon.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            locationIcon.topAnchor.constraint(equalTo: statusIcon.bottomAnchor, constant: 6),
+            locationIcon.widthAnchor.constraint(equalToConstant: 16),
+            locationIcon.heightAnchor.constraint(equalToConstant: 16),
             
-            starStack.topAnchor.constraint(equalTo: techStack.bottomAnchor, constant: 8),  // Reduced from 12
-            starStack.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
+            locationLabel.leadingAnchor.constraint(equalTo: locationIcon.trailingAnchor, constant: 6),
+            locationLabel.centerYAnchor.constraint(equalTo: locationIcon.centerYAnchor),
             
-            commentLabel.topAnchor.constraint(equalTo: starStack.bottomAnchor, constant: 6),  // Reduced from 8
-            commentLabel.leadingAnchor.constraint(equalTo: contentContainer.leadingAnchor, constant: 12),  // Reduced from 16
-            commentLabel.trailingAnchor.constraint(equalTo: priorityCircle.leadingAnchor, constant: -10),  // Reduced from -12
-            commentLabel.bottomAnchor.constraint(equalTo: contentContainer.bottomAnchor, constant: -12),  // Reduced from -16
+            techIcon.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            techIcon.topAnchor.constraint(equalTo: locationIcon.bottomAnchor, constant: 6),
+            techIcon.widthAnchor.constraint(equalToConstant: 16),
+            techIcon.heightAnchor.constraint(equalToConstant: 16),
             
-            priorityCircle.centerYAnchor.constraint(equalTo: contentContainer.centerYAnchor),
-            priorityCircle.trailingAnchor.constraint(equalTo: contentContainer.trailingAnchor, constant: -12),  // Reduced from -16
-            priorityCircle.widthAnchor.constraint(equalToConstant: 48),  // Reduced from 60
-            priorityCircle.heightAnchor.constraint(equalToConstant: 48),  // Reduced from 60
+            techLabel.leadingAnchor.constraint(equalTo: techIcon.trailingAnchor, constant: 6),
+            techLabel.centerYAnchor.constraint(equalTo: techIcon.centerYAnchor),
             
-            exclamationLabel.centerXAnchor.constraint(equalTo: priorityCircle.centerXAnchor),
-            exclamationLabel.centerYAnchor.constraint(equalTo: priorityCircle.centerYAnchor)
+            starsStack.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            starsStack.topAnchor.constraint(equalTo: techIcon.bottomAnchor, constant: 10),
+            starsStack.heightAnchor.constraint(equalToConstant: 20),
+            
+            ratingText.leadingAnchor.constraint(equalTo: colorBar.trailingAnchor, constant: 16),
+            ratingText.topAnchor.constraint(equalTo: starsStack.bottomAnchor, constant: 2),
+            ratingText.bottomAnchor.constraint(lessThanOrEqualTo: cardView.bottomAnchor, constant: -12),
+            
+            statusCircle.trailingAnchor.constraint(equalTo: cardView.trailingAnchor, constant: -16),
+            statusCircle.centerYAnchor.constraint(equalTo: cardView.centerYAnchor),
+            statusCircle.widthAnchor.constraint(equalToConstant: 60),
+            statusCircle.heightAnchor.constraint(equalToConstant: 60),
+            
+            exclamation.centerXAnchor.constraint(equalTo: statusCircle.centerXAnchor),
+            exclamation.centerYAnchor.constraint(equalTo: statusCircle.centerYAnchor)
         ])
         
-        stackView.addArrangedSubview(containerView)
+        // Tap gesture
+        let tap = UITapGestureRecognizer(target: self, action: #selector(feedbackCardTapped(_:)))
+        cardView.tag = feedback.feedback_id
+        cardView.addGestureRecognizer(tap)
+        cardView.isUserInteractionEnabled = true
+        
+        stackView.addArrangedSubview(cardView)
     }
     
-    // MARK: - Navigation
-    @objc func feedbackTapped(_ sender: UITapGestureRecognizer) {
-        guard let view = sender.view,
-              let feedback = feedbackArray.first(where: { $0.feedback_id == view.tag }) else { return }
+    func createStarsView(rating: Int) -> UIStackView {
+        let stack = UIStackView()
+        stack.axis = .horizontal
+        stack.spacing = 2
+        stack.distribution = .fillEqually
         
+        for i in 1...5 {
+            let star = UILabel()
+            star.text = "★"
+            star.font = .systemFont(ofSize: 16)
+            star.textColor = i <= rating ? .systemYellow : .systemGray4
+            stack.addArrangedSubview(star)
+        }
+        
+        return stack
+    }
+    
+    @objc func feedbackCardTapped(_ sender: UITapGestureRecognizer) {
+        print("🔘 Card tapped!")
+        print("   Gesture view tag: \(sender.view?.tag ?? -1)")
+        
+        guard let feedbackID = sender.view?.tag,
+              let feedback = feedbackArray.first(where: { $0.feedback_id == feedbackID }) else {
+            print("❌ Could not find feedback with ID: \(sender.view?.tag ?? -1)")
+            return
+        }
+        
+        print("✅ Found feedback: ID \(feedback.feedback_id)")
+        
+        // Create detail view controller programmatically
         let detailVC = FeedbackDetailViewController()
         detailVC.feedback = feedback
-        navigationController?.pushViewController(detailVC, animated: true)
+        
+        if let navigationController = navigationController {
+            print("✅ Pushing to navigation controller")
+            navigationController.pushViewController(detailVC, animated: true)
+        } else {
+            print("❌ No navigation controller - presenting modally")
+            present(detailVC, animated: true)
+        }
     }
     
-    // MARK: - Helper Methods
     func showErrorAlert(message: String) {
         let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))

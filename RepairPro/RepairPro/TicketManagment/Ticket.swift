@@ -1,6 +1,7 @@
 //
-//  Ticket.swift
+//  Ticket.swift (FIXED)
 //  Ticket model for maintenance/support tickets
+//  ✅ FIXED: Status now defaults to "In Progress" when no technician is assigned
 //
 
 import Foundation
@@ -79,13 +80,6 @@ struct Ticket: Codable, Identifiable {
             due = formatter.string(from: futureDate)
         }
         
-        // Handle status with fallback
-        if let statusValue = try? container.decode(String.self, forKey: .status), !statusValue.isEmpty {
-            status = statusValue
-        } else {
-            status = "Assigned"
-        }
-        
         // Handle priority with fallback
         if let priorityValue = try? container.decode(String.self, forKey: .priority), !priorityValue.isEmpty {
             priority = priorityValue
@@ -122,6 +116,19 @@ struct Ticket: Codable, Identifiable {
             image_url = imageValue
         } else {
             image_url = nil
+        }
+        
+        // ✅ FIXED: Handle status with smart fallback based on technician assignment
+        if let statusValue = try? container.decode(String.self, forKey: .status), !statusValue.isEmpty {
+            status = statusValue
+        } else {
+            // If no status is set, check if technician is assigned
+            // If technician exists → "Assigned", otherwise → "In Progress"
+            if technician_id != nil || technician_name != nil {
+                status = "Assigned"
+            } else {
+                status = "In Progress"
+            }
         }
     }
     

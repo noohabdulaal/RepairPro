@@ -2,6 +2,7 @@
 //  TicketViewList.swift (UPDATED)
 //  Shows formatted deadline with urgency indicators on ticket cards
 //  ✅ UPDATED: Uses new Ticket model with robust decoding
+//  ✅ NEW: Shows "New Ticket" badge for unassigned tickets
 //
 
 import UIKit
@@ -160,7 +161,9 @@ class TicketViewList: UIViewController {
             emptyLabel.translatesAutoresizingMaskIntoConstraints = false
             stackView.addArrangedSubview(emptyLabel)
         } else {
-            tickets.forEach { createTicketView(for: $0) }
+            tickets.enumerated().forEach { index, ticket in
+                createTicketView(for: ticket, displayIndex: index)
+            }
         }
     }
     
@@ -174,82 +177,115 @@ class TicketViewList: UIViewController {
         currentStatusFilter = status
         currentPriorityFilter = priority
         currentDeadlineFilter = deadline
+        
         applyCurrentFilters()
     }
-
-    // Apply Current Filters Method
+    
     func applyCurrentFilters() {
-        print("\n🔍 ========== APPLYING FILTERS ==========")
-        print("Starting with \(ticketsArray.count) tickets")
-        
-        // Start with all tickets (excluding pending)
         filteredTickets = ticketsArray
         
-        // FILTER BY STATUS (if selected)
-        if let status = currentStatusFilter {
-            let beforeCount = filteredTickets.count
+        // 1. STATUS FILTER
+        if let statusFilter = currentStatusFilter, !statusFilter.isEmpty {
+            print("   Applying status filter: \(statusFilter)")
             filteredTickets = filteredTickets.filter {
-                $0.status.lowercased() == status.lowercased()
+                $0.status.lowercased() == statusFilter.lowercased()
             }
-            print("📌 Status filter '\(status)': \(beforeCount) → \(filteredTickets.count) tickets")
-        } else {
-            print("📌 No status filter applied")
+            print("   → After status filter: \(filteredTickets.count) tickets")
         }
         
-        // FILTER BY PRIORITY (if selected)
-        if let priority = currentPriorityFilter {
-            let beforeCount = filteredTickets.count
-            print("📌 Filtering by priority: '\(priority)'")
+        // 2. PRIORITY FILTER
+        if let priorityFilter = currentPriorityFilter, !priorityFilter.isEmpty {
+            print("   Applying priority filter: \(priorityFilter)")
+            filteredTickets = filteredTickets.filter {
+                $0.priority.lowercased() == priorityFilter.lowercased()
+            }
+            print("   → After priority filter: \(filteredTickets.count) tickets")
+        }
+        
+        // 3. DEADLINE FILTER
+        if let deadlineFilter = currentDeadlineFilter, !deadlineFilter.isEmpty {
+            print("   Applying deadline filter: \(deadlineFilter)")
+            let now = Date()
             
             filteredTickets = filteredTickets.filter { ticket in
-                let matches = ticket.priority.lowercased() == priority.lowercased()
-                print("   Ticket \(ticket.ticket_id): '\(ticket.priority)' \(matches ? "✓ MATCHES" : "✗ doesn't match") '\(priority)'")
-                return matches
-            }
-            
-            print("📌 Priority filter '\(priority)': \(beforeCount) → \(filteredTickets.count) tickets")
-        } else {
-            print("📌 No priority filter applied")
-        }
-        
-        // SORT BY DEADLINE (if selected)
-        if let deadline = currentDeadlineFilter {
-            let formatter = ISO8601DateFormatter()
-            
-            filteredTickets.sort { first, second in
-                guard let date1 = formatter.date(from: first.due),
-                      let date2 = formatter.date(from: second.due) else {
+                let formatter = ISO8601DateFormatter()
+                guard let dueDate = formatter.date(from: ticket.due) else {
                     return false
                 }
                 
-                // "nearest" = earliest first (ascending)
-                // "furthest" = latest first (descending)
-                if deadline.lowercased() == "nearest" {
-                    return date1 < date2
-                } else {
-                    return date1 > date2
+                let daysRemaining = Calendar.current.dateComponents([.day], from: now, to: dueDate).day ?? 0
+                
+                switch deadlineFilter.lowercased() {
+                case "today":
+                    return daysRemaining == 0
+                case "this week":
+                    return daysRemaining >= 0 && daysRemaining <= 7
+                case "overdue":
+                    return daysRemaining < 0
+                default:
+                    return true
                 }
             }
-            print("📌 Sorted by deadline '\(deadline)': \(filteredTickets.count) tickets")
-        } else {
-            print("📌 No deadline sorting applied")
+            print("   → After deadline filter: \(filteredTickets.count) tickets")
         }
         
-        print("✅ FINAL RESULT: Displaying \(filteredTickets.count) tickets")
-        print("========================================\n")
+        print("✅ FINAL FILTERED COUNT: \(filteredTickets.count) tickets")
         
         displayTickets(filteredTickets)
     }
 
-    // MARK: - Create Ticket View (with priority display)
-    func createTicketView(for ticket: Ticket) {
+    // MARK: - Create Ticket View (with priority display + New Ticket badge)
+    func createTicketView(for ticket: Ticket, displayIndex: Int) {
         let statusColor = ticket.accentColor  // Use the model's accent color
         
         let containerView = UIView()
         containerView.backgroundColor = .systemGray6
         containerView.layer.cornerRadius = 12
-        containerView.clipsToBounds = true
+        containerView.clipsToBounds = false
         containerView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // ⚡ ELECTRIC BORDER for unassigned tickets
+        if ticket.displayTechnicianName == "Unassigned" {
+            // Add bright electric border
+            containerView.layer.borderWidth = 2
+            containerView.layer.borderColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1).cgColor
+            
+            // Add electric glow
+            containerView.layer.shadowColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1).cgColor
+            containerView.layer.shadowOffset = .zero
+            containerView.layer.shadowRadius = 6
+            containerView.layer.shadowOpacity = 0.6
+            
+            // Fast pulsing like electricity (multiple animations)
+            
+            // 1. Border width pulse (quick)
+            let widthPulse = CABasicAnimation(keyPath: "borderWidth")
+            widthPulse.fromValue = 2
+            widthPulse.toValue = 3.5
+            widthPulse.duration = 0.3
+            widthPulse.autoreverses = true
+            widthPulse.repeatCount = .infinity
+            containerView.layer.add(widthPulse, forKey: "electricWidth")
+            
+            // 2. Glow intensity pulse (medium speed)
+            let glowPulse = CABasicAnimation(keyPath: "shadowOpacity")
+            glowPulse.fromValue = 0.4
+            glowPulse.toValue = 1.0
+            glowPulse.duration = 0.6
+            glowPulse.autoreverses = true
+            glowPulse.repeatCount = .infinity
+            containerView.layer.add(glowPulse, forKey: "electricGlow")
+            
+            // 3. Shadow radius pulse (creates zapping effect)
+            let radiusPulse = CABasicAnimation(keyPath: "shadowRadius")
+            radiusPulse.fromValue = 4
+            radiusPulse.toValue = 10
+            radiusPulse.duration = 0.6
+            radiusPulse.autoreverses = true
+            radiusPulse.repeatCount = .infinity
+            radiusPulse.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+            containerView.layer.add(radiusPulse, forKey: "electricRadius")
+        }
         
         let hasTechi = ticket.displayTechnicianName != "Unassigned"
         containerView.heightAnchor.constraint(equalToConstant: hasTechi ? 200 : 180).isActive = true
@@ -261,6 +297,8 @@ class TicketViewList: UIViewController {
         
         let sideBar = UIView()
         sideBar.backgroundColor = statusColor
+        sideBar.layer.cornerRadius = 12
+        sideBar.layer.maskedCorners = [.layerMinXMinYCorner, .layerMinXMaxYCorner] // Only round left corners
         sideBar.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(sideBar)
         
@@ -364,9 +402,23 @@ class TicketViewList: UIViewController {
         ticketImageView.translatesAutoresizingMaskIntoConstraints = false
         containerView.addSubview(ticketImageView)
         
-        loadImageFromCloudinary(publicIDOrURL: ticket.image_url, into: ticketImageView)
+        // ✅ Use display index to select image (ensures variety in the list)
+        loadImageFromCloudinary(publicIDOrURL: ticket.image_url, into: ticketImageView, displayIndex: displayIndex)
         
-        let constraints = [
+        // ✅ NEW: "New Ticket" badge for unassigned tickets
+        var newTicketBadge: UILabel?
+        if ticket.displayTechnicianName == "Unassigned" {
+            let badge = UILabel()
+            badge.text = "New Ticket"
+            badge.font = .systemFont(ofSize: 13, weight: .bold)
+            badge.textColor = UIColor(red: 0/255, green: 122/255, blue: 255/255, alpha: 1) // #007AFF (blue)
+            badge.textAlignment = .right
+            badge.translatesAutoresizingMaskIntoConstraints = false
+            containerView.addSubview(badge)
+            newTicketBadge = badge
+        }
+        
+        var constraints = [
             sideBar.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             sideBar.topAnchor.constraint(equalTo: containerView.topAnchor),
             sideBar.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
@@ -416,6 +468,14 @@ class TicketViewList: UIViewController {
             ticketImageView.heightAnchor.constraint(equalToConstant: 60)
         ]
         
+        // ✅ Add constraints for "New Ticket" badge
+        if let badge = newTicketBadge {
+            constraints.append(contentsOf: [
+                badge.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -16),
+                badge.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -12)
+            ])
+        }
+        
         NSLayoutConstraint.activate(constraints)
         stackView.addArrangedSubview(containerView)
     }
@@ -430,20 +490,38 @@ class TicketViewList: UIViewController {
         navigationController?.pushViewController(editVC, animated: true)
     }
     
-    func loadImageFromCloudinary(publicIDOrURL: String?, into imageView: UIImageView) {
-        let defaultImageURL = "https://res.cloudinary.com/dtthzideh/image/upload/v1766927687/Copilot_20251225_112235_zuxqkf.png"
+    func loadImageFromCloudinary(publicIDOrURL: String?, into imageView: UIImageView, displayIndex: Int) {
+        // ✅ Array of default images to select from (matching Edittickets.swift)
+        let defaultImageURLs = [
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_111257.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112235.png",
+            "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
+        ]
+        
+        // ✅ Use display index to rotate through images (ensures each ticket shows different image)
+        let imageIndex = displayIndex % defaultImageURLs.count
+        let selectedImageURL = defaultImageURLs[imageIndex]
+        
         guard let path = publicIDOrURL, !path.isEmpty else {
-            loadRemoteImage(from: defaultImageURL, into: imageView)
+            loadRemoteImage(from: selectedImageURL, into: imageView)
             return
         }
         
+        // ✅ Always use the default images for now to ensure variety
+        loadRemoteImage(from: selectedImageURL, into: imageView)
+        
+        // Original logic (commented out - uncomment if you want to use custom images when available)
+        /*
         if path.starts(with: "http") {
             loadRemoteImage(from: path, into: imageView)
         } else {
             if let url = cloudinary.createUrl().generate(path) {
                 loadRemoteImage(from: url, into: imageView)
+            } else {
+                loadRemoteImage(from: selectedImageURL, into: imageView)
             }
         }
+        */
     }
     
     func loadRemoteImage(from urlString: String, into imageView: UIImageView) {

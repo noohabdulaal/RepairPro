@@ -65,9 +65,16 @@ struct Feedback: Codable, Identifiable {
         let categoryValue = try container.decode(String.self, forKey: .category)
         category = categoryValue.isEmpty ? "Uncategorized" : categoryValue
         
-        // Handle description with fallback for empty/null values
-        if let descValue = try? container.decode(String.self, forKey: .description), !descValue.isEmpty {
-            description = descValue
+        // Handle description with fallback for empty/null values and placeholder patterns
+        if let descValue = try? container.decode(String.self, forKey: .description) {
+            let trimmed = descValue.trimmingCharacters(in: .whitespaces)
+            // Check if description is valid (not empty, not just dots, not placeholder text)
+            let isValidDescription = !trimmed.isEmpty &&
+                                   !trimmed.allSatisfy({ $0 == "." }) &&  // Filter out dot patterns
+                                   trimmed.lowercased() != "none" &&
+                                   trimmed.lowercased() != "n/a"
+            
+            description = isValidDescription ? trimmed : "No description provided"
         } else {
             description = "No description provided"
         }
