@@ -3,6 +3,16 @@
 //  Timeline Style Date Filter Modal
 //
 
+//
+//  DateFilterModal_TIMELINE.swift
+//  Timeline-style date filter modal with preset date ranges
+//
+//  PURPOSE:
+//  - Provides a visual timeline interface for selecting date ranges
+//  - Offers preset options (Past 24 hours, Past 3 days, Past week, Past month, All Time)
+//  - Returns selected date range to calling view controller via callback closure
+//
+
 import UIKit
 
 class DateFilterModal: UIViewController {

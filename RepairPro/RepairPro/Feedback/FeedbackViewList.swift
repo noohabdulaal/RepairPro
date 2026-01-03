@@ -18,6 +18,11 @@ class FeedbackViewList: UIViewController {
     var currentTechnicianFilter: String? = nil
     var currentDateFilter: String = "All Time"
     
+    // MARK: - Notification Properties
+    var existingFeedbackIDs: Set<Int> = []  // Track which feedbacks we've already seen
+    var isFirstLoad = true  // Don't show notifications on initial load
+    var currentNotificationView: UIView?  // Reference to active notification
+    
     let db = Firestore.firestore()
     let cloudinary = CLDCloudinary(configuration: CLDConfiguration(cloudName: "dtthzideh"))
     
@@ -43,7 +48,7 @@ class FeedbackViewList: UIViewController {
         
         // Date filter chip
         var dateConfig = UIButton.Configuration.filled()
-        dateConfig.title = "Past 3 days"
+        dateConfig.title = "All Time"
         dateConfig.baseForegroundColor = .white
         dateConfig.baseBackgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
         dateConfig.cornerStyle = .capsule
@@ -210,11 +215,19 @@ class FeedbackViewList: UIViewController {
             print("✅ Received \(snapshot.documents.count) documents")
             
             var feedbacks: [Feedback] = []
+            var newFeedbacks: [Feedback] = []  // Track truly new feedback
             
             for doc in snapshot.documents {
                 do {
                     let feedback = try doc.data(as: Feedback.self)
                     feedbacks.append(feedback)
+                    
+                    // Check if this is a NEW feedback (not in our existing set)
+                    if !self.isFirstLoad && !self.existingFeedbackIDs.contains(feedback.feedback_id) {
+                        newFeedbacks.append(feedback)
+                        print("🆕 NEW FEEDBACK DETECTED: #\(feedback.feedback_id)")
+                    }
+                    
                     print("  ✓ Feedback \(feedback.feedback_id): \(feedback.user_name)")
                 } catch {
                     print("  ✗ Error decoding: \(error)")
@@ -224,6 +237,23 @@ class FeedbackViewList: UIViewController {
             DispatchQueue.main.async {
                 self.feedbackArray = feedbacks
                 print("📊 Total feedbacks: \(feedbacks.count)")
+                
+                // Update existing feedback IDs
+                self.existingFeedbackIDs = Set(self.feedbackArray.map { $0.feedback_id })
+                
+                // Show notification for new feedback (only after first load)
+                if !self.isFirstLoad && !newFeedbacks.isEmpty {
+                    for newFeedback in newFeedbacks {
+                        self.showNewFeedbackNotification(feedback: newFeedback)
+                    }
+                }
+                
+                // Mark first load as complete
+                if self.isFirstLoad {
+                    self.isFirstLoad = false
+                    print("📍 First load complete. Will now show notifications for new feedback.")
+                }
+                
                 self.applyCurrentFilters()
             }
         }
@@ -251,32 +281,96 @@ class FeedbackViewList: UIViewController {
         // Filter by date
         if currentDateFilter != "All Time" {
             let now = Date()
-            let calendar = Calendar.current
             let beforeCount = filteredFeedback.count
+            
+            print("\n📅 === DATE FILTERING ===")
+            print("Filter: \(currentDateFilter)")
+            print("Current time: \(now)")
+            print("Total items to filter: \(beforeCount)")
+            
+            var parseErrors = 0
+            var passedCount = 0
+            var failedCount = 0
             
             filteredFeedback = filteredFeedback.filter { feedback in
                 let formatter = ISO8601DateFormatter()
+                
+                // Try to parse the date
                 guard let submittedDate = formatter.date(from: feedback.date_submitted) else {
-                    return false
+                    print("⚠️ Could not parse date for feedback #\(feedback.feedback_id): '\(feedback.date_submitted)'")
+                    parseErrors += 1
+                    // If we can't parse the date, INCLUDE it (safer than excluding)
+                    return true
                 }
                 
-                let daysDiff = calendar.dateComponents([.day], from: submittedDate, to: now).day ?? 0
+                // Calculate time interval in seconds (positive means submittedDate is in the past)
+                let timeInterval = now.timeIntervalSince(submittedDate)
+                let hoursAgo = timeInterval / 3600.0
+                let daysAgo = hoursAgo / 24.0
+                
+                // Check if the date is within the selected time range
+                let isWithinRange: Bool
                 
                 switch currentDateFilter {
                 case "Past 24 hours":
-                    return calendar.dateComponents([.hour], from: submittedDate, to: now).hour ?? 0 <= 24
+                    let hours24 = 24.0 * 3600.0
+                    isWithinRange = timeInterval >= 0 && timeInterval <= hours24
+                    if passedCount + failedCount < 5 {
+                        print("\n  Feedback #\(feedback.feedback_id):")
+                        print("    Submitted: \(submittedDate)")
+                        print("    Time ago: \(String(format: "%.1f", hoursAgo)) hours (\(String(format: "%.1f", daysAgo)) days)")
+                        print("    Past 24h? \(isWithinRange)")
+                    }
+                    
                 case "Past 3 days":
-                    return daysDiff <= 3
+                    let days3 = 3.0 * 24.0 * 3600.0
+                    isWithinRange = timeInterval >= 0 && timeInterval <= days3
+                    if passedCount + failedCount < 5 {
+                        print("\n  Feedback #\(feedback.feedback_id):")
+                        print("    Submitted: \(submittedDate)")
+                        print("    Time ago: \(String(format: "%.1f", hoursAgo)) hours (\(String(format: "%.1f", daysAgo)) days)")
+                        print("    Past 3d? \(isWithinRange) (need <= 72 hours)")
+                    }
+                    
                 case "Past week":
-                    return daysDiff <= 7
+                    let week = 7.0 * 24.0 * 3600.0
+                    isWithinRange = timeInterval >= 0 && timeInterval <= week
+                    if passedCount + failedCount < 5 {
+                        print("\n  Feedback #\(feedback.feedback_id):")
+                        print("    Submitted: \(submittedDate)")
+                        print("    Time ago: \(String(format: "%.1f", hoursAgo)) hours (\(String(format: "%.1f", daysAgo)) days)")
+                        print("    Past week? \(isWithinRange) (need <= 168 hours)")
+                    }
+                    
                 case "Past month":
-                    return daysDiff <= 30
+                    let month = 30.0 * 24.0 * 3600.0
+                    isWithinRange = timeInterval >= 0 && timeInterval <= month
+                    if passedCount + failedCount < 5 {
+                        print("\n  Feedback #\(feedback.feedback_id):")
+                        print("    Submitted: \(submittedDate)")
+                        print("    Time ago: \(String(format: "%.1f", hoursAgo)) hours (\(String(format: "%.1f", daysAgo)) days)")
+                        print("    Past month? \(isWithinRange) (need <= 720 hours)")
+                    }
+                    
                 default:
-                    return true
+                    isWithinRange = true
                 }
+                
+                if isWithinRange {
+                    passedCount += 1
+                } else {
+                    failedCount += 1
+                }
+                
+                return isWithinRange
             }
             
-            print("📅 After date filter: \(beforeCount) → \(filteredFeedback.count)")
+            print("\n📊 FILTER RESULTS:")
+            print("  Parse errors: \(parseErrors)")
+            print("  Passed filter: \(passedCount)")
+            print("  Failed filter: \(failedCount)")
+            print("  Final count: \(beforeCount) → \(filteredFeedback.count)")
+            print("=======================\n")
         }
         
         print("✅ Final count: \(filteredFeedback.count)")
@@ -598,5 +692,214 @@ class FeedbackViewList: UIViewController {
         let alert = UIAlertController(title: "Error", message: message, preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "OK", style: .default))
         present(alert, animated: true)
+    }
+    
+    // MARK: - Notification Methods
+    
+    /// Shows a notification for newly submitted feedback
+    /// - Parameter feedback: The new feedback that was submitted
+    func showNewFeedbackNotification(feedback: Feedback) {
+        // Dismiss any existing notification first
+        if let existing = currentNotificationView {
+            dismissNotification(existing, animated: false)
+        }
+        
+        // Create notification view
+        let notificationView = createFeedbackNotificationView(for: feedback)
+        notificationView.alpha = 0
+        notificationView.transform = CGAffineTransform(translationX: 0, y: -100)
+        
+        view.addSubview(notificationView)
+        currentNotificationView = notificationView
+        
+        // Position it at the top (below safe area)
+        notificationView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            notificationView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 10),
+            notificationView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            notificationView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            notificationView.heightAnchor.constraint(greaterThanOrEqualToConstant: 70)
+        ])
+        
+        // Force layout
+        view.layoutIfNeeded()
+        
+        // Animate in with slide down + fade
+        UIView.animate(withDuration: 0.5, delay: 0, usingSpringWithDamping: 0.8, initialSpringVelocity: 0.5, options: .curveEaseOut) {
+            notificationView.alpha = 1
+            notificationView.transform = .identity
+        }
+        
+        // Add haptic feedback
+        let generator = UINotificationFeedbackGenerator()
+        generator.notificationOccurred(.success)
+        
+        // Auto-dismiss after 3.5 seconds
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.5) { [weak self] in
+            self?.dismissNotification(notificationView, animated: true)
+        }
+        
+        print("🔔 Notification shown for feedback #\(feedback.feedback_id)")
+    }
+    
+    /// Creates the notification view for feedback
+    /// - Parameter feedback: The feedback to display information about
+    /// - Returns: Configured notification view
+    func createFeedbackNotificationView(for feedback: Feedback) -> UIView {
+        let containerView = UIView()
+        containerView.backgroundColor = .clear
+        containerView.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Main notification card with gradient
+        let notificationCard = UIView()
+        notificationCard.translatesAutoresizingMaskIntoConstraints = false
+        
+        // Create gradient layer (green/teal gradient for feedback)
+        let gradientLayer = CAGradientLayer()
+        gradientLayer.colors = [
+            UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 1).cgColor,  // Green
+            UIColor(red: 48/255, green: 176/255, blue: 199/255, alpha: 1).cgColor  // Teal
+        ]
+        gradientLayer.startPoint = CGPoint(x: 0, y: 0)
+        gradientLayer.endPoint = CGPoint(x: 1, y: 1)
+        gradientLayer.cornerRadius = 16
+        notificationCard.layer.insertSublayer(gradientLayer, at: 0)
+        
+        // Shadow
+        notificationCard.layer.shadowColor = UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 0.4).cgColor
+        notificationCard.layer.shadowOffset = CGSize(width: 0, height: 8)
+        notificationCard.layer.shadowRadius = 24
+        notificationCard.layer.shadowOpacity = 1
+        notificationCard.layer.cornerRadius = 16
+        
+        containerView.addSubview(notificationCard)
+        
+        // Icon container
+        let iconContainer = UIView()
+        iconContainer.backgroundColor = UIColor(white: 1, alpha: 0.2)
+        iconContainer.layer.cornerRadius = 12
+        iconContainer.translatesAutoresizingMaskIntoConstraints = false
+        notificationCard.addSubview(iconContainer)
+        
+        // Icon - SF Symbol chat bubble
+        let iconImageView = UIImageView()
+        let config = UIImage.SymbolConfiguration(pointSize: 20, weight: .semibold)
+        iconImageView.image = UIImage(systemName: "bubble.left.fill", withConfiguration: config)
+        iconImageView.tintColor = .white
+        iconImageView.contentMode = .scaleAspectFit
+        iconImageView.translatesAutoresizingMaskIntoConstraints = false
+        iconContainer.addSubview(iconImageView)
+        
+        // Content stack
+        let contentStack = UIStackView()
+        contentStack.axis = .vertical
+        contentStack.spacing = 4
+        contentStack.translatesAutoresizingMaskIntoConstraints = false
+        notificationCard.addSubview(contentStack)
+        
+        // Title label
+        let titleLabel = UILabel()
+        titleLabel.text = "New Feedback Submitted"
+        titleLabel.font = .systemFont(ofSize: 16, weight: .bold)
+        titleLabel.textColor = .white
+        contentStack.addArrangedSubview(titleLabel)
+        
+        // Message label with rating stars
+        let messageLabel = UILabel()
+        let stars = String(repeating: "⭐", count: feedback.rating)
+        messageLabel.text = "Feedback #\(feedback.feedback_id) - \(stars) by \(feedback.user_name)"
+        messageLabel.font = .systemFont(ofSize: 13, weight: .regular)
+        messageLabel.textColor = UIColor(white: 1, alpha: 0.9)
+        messageLabel.numberOfLines = 2
+        contentStack.addArrangedSubview(messageLabel)
+        
+        // Layout constraints
+        NSLayoutConstraint.activate([
+            notificationCard.topAnchor.constraint(equalTo: containerView.topAnchor),
+            notificationCard.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            notificationCard.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            notificationCard.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            
+            iconContainer.leadingAnchor.constraint(equalTo: notificationCard.leadingAnchor, constant: 20),
+            iconContainer.centerYAnchor.constraint(equalTo: notificationCard.centerYAnchor),
+            iconContainer.widthAnchor.constraint(equalToConstant: 44),
+            iconContainer.heightAnchor.constraint(equalToConstant: 44),
+            
+            iconImageView.centerXAnchor.constraint(equalTo: iconContainer.centerXAnchor),
+            iconImageView.centerYAnchor.constraint(equalTo: iconContainer.centerYAnchor),
+            iconImageView.widthAnchor.constraint(equalToConstant: 24),
+            iconImageView.heightAnchor.constraint(equalToConstant: 24),
+            
+            contentStack.leadingAnchor.constraint(equalTo: iconContainer.trailingAnchor, constant: 15),
+            contentStack.trailingAnchor.constraint(equalTo: notificationCard.trailingAnchor, constant: -20),
+            contentStack.topAnchor.constraint(equalTo: notificationCard.topAnchor, constant: 20),
+            contentStack.bottomAnchor.constraint(equalTo: notificationCard.bottomAnchor, constant: -20)
+        ])
+        
+        // Update gradient frame when layout changes
+        DispatchQueue.main.async {
+            gradientLayer.frame = notificationCard.bounds
+        }
+        
+        // Add tap gesture to dismiss or view feedback
+        let tapGesture = UITapGestureRecognizer(target: self, action: #selector(feedbackNotificationTapped(_:)))
+        containerView.addGestureRecognizer(tapGesture)
+        containerView.isUserInteractionEnabled = true
+        containerView.tag = feedback.feedback_id  // Store feedback ID in tag
+        
+        return containerView
+    }
+    
+    /// Dismisses the notification with animation
+    /// - Parameters:
+    ///   - notification: The notification view to dismiss
+    ///   - animated: Whether to animate the dismissal
+    func dismissNotification(_ notification: UIView, animated: Bool) {
+        guard notification.superview != nil else { return }
+        
+        if animated {
+            UIView.animate(withDuration: 0.3, delay: 0, options: .curveEaseIn, animations: {
+                notification.alpha = 0
+                notification.transform = CGAffineTransform(translationX: 0, y: -100)
+            }) { _ in
+                notification.removeFromSuperview()
+                if self.currentNotificationView == notification {
+                    self.currentNotificationView = nil
+                }
+            }
+        } else {
+            notification.removeFromSuperview()
+            if currentNotificationView == notification {
+                currentNotificationView = nil
+            }
+        }
+    }
+    
+    /// Handles tap on notification - opens the feedback
+    @objc func feedbackNotificationTapped(_ sender: UITapGestureRecognizer) {
+        guard let notificationView = sender.view,
+              let feedbackID = notificationView.tag as Int?,
+              let feedback = feedbackArray.first(where: { $0.feedback_id == feedbackID }) else {
+            // Just dismiss if we can't find the feedback
+            if let view = sender.view {
+                dismissNotification(view, animated: true)
+            }
+            return
+        }
+        
+        // Dismiss notification
+        dismissNotification(notificationView, animated: true)
+        
+        // Open feedback details
+        let detailVC = FeedbackDetailViewController()
+        detailVC.feedback = feedback
+        
+        if let navigationController = navigationController {
+            navigationController.pushViewController(detailVC, animated: true)
+        } else {
+            present(detailVC, animated: true)
+        }
+        
+        print("📱 Opened feedback #\(feedbackID) from notification")
     }
 }

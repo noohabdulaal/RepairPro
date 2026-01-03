@@ -225,13 +225,9 @@ class Edittickets: UIViewController {
     
     // ✅ Update Save Button State
     func updateSaveButtonState() {
-        if selectedTechnician != nil {
-            saveButton.isEnabled = true
-            saveButton.alpha = 1.0
-        } else {
-            saveButton.isEnabled = false
-            saveButton.alpha = 0.5
-        }
+        // ✅ Always enable save button (can save with or without technician)
+        saveButton.isEnabled = true
+        saveButton.alpha = 1.0
     }
     
     // ✅ Update Status Preview
@@ -239,10 +235,10 @@ class Edittickets: UIViewController {
         // If technician is selected, show "Assigned"
         if selectedTechnician != nil {
             statusLabel.text = "Assigned"
-            statusLabel.textColor = UIColor(red: 52/255, green: 199/255, blue: 89/255, alpha: 1) // Green for assigned
+            statusLabel.textColor = UIColor(red: 255/255, green: 162/255, blue: 19/255, alpha: 1) // Orange #FFA213 for assigned
         } else {
-            statusLabel.text = "Pending"
-            statusLabel.textColor = .systemGray
+            statusLabel.text = "In Progress"
+            statusLabel.textColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1) // Blue #00476F for in progress
         }
     }
     
@@ -283,34 +279,32 @@ class Edittickets: UIViewController {
     @IBAction func saveButtonTapped(_ sender: UIButton) {
         guard var ticket = ticket else { return }
         
-        // ✅ Check if technician is selected
-        guard let technician = selectedTechnician else {
-            showAlert(title: "Technician Required", message: "Please select a technician before saving. A ticket cannot have 'Assigned' status without a technician.")
-            return
-        }
-        
         // Get selected priority
         let priority = getSelectedPriority()
         print("💾 Saving with priority: \(priority.rawValue)")
         
-        // ✅ Set status to "Assigned" when technician is selected
-        let status: TicketStatus = .assigned
-        
-        // Validate: Cannot assign without technician
-        if status == .assigned && ticket.technician_id == nil {
-            showAlert(title: "Error", message: "Cannot set status to 'Assigned' without a technician")
-            return
+        // ✅ SMART STATUS LOGIC:
+        // - If technician is selected → status = "Assigned"
+        // - If NO technician → status = "In Progress"
+        let status: TicketStatus
+        if let technician = selectedTechnician {
+            status = .assigned
+            ticket.technician_id = technician.id
+            ticket.technician_name = technician.name
+            print("✅ Technician selected: \(technician.name) → Status: Assigned")
+        } else {
+            status = .inProgress
+            // Clear technician data if unassigning
+            ticket.technician_id = nil
+            ticket.technician_name = nil
+            print("⚠️ No technician → Status: In Progress")
         }
         
-        // ✅ AUTO-GENERATE DEADLINE based on Assigned status + priority
+        // ✅ AUTO-GENERATE DEADLINE based on status + priority
         let deadline = DeadlineCalculator.calculateDeadline(
             status: status,
             priority: priority
         )
-        
-        // Update ticket with selected technician
-        ticket.technician_id = technician.id
-        ticket.technician_name = technician.name
         
         // Save to Firestore
         saveTicketToFirestore(
@@ -353,41 +347,83 @@ class Edittickets: UIViewController {
         print("   Priority: \(priority.rawValue)")
         print("   Due: \(DeadlineCalculator.formatDeadlineForFirebase(deadline))")
         
-        // Update Firestore document
+        // ✅ Try finding ticket - search by ticket_id (try both as Int and String)
         db.collection("Tickets")
             .whereField("ticket_id", isEqualTo: ticket.ticket_id)
             .getDocuments { [weak self] snapshot, error in
                 guard let self = self else { return }
                 
                 if let error = error {
-                    print("❌ Error finding ticket: \(error.localizedDescription)")
-                    self.showErrorAndResetButton("Failed to save ticket")
+                    print("❌ Error finding ticket (trying Int): \(error.localizedDescription)")
+                    
+                    // ✅ Try again with String
+                    self.db.collection("Tickets")
+                        .whereField("ticket_id", isEqualTo: "\(ticket.ticket_id)")
+                        .getDocuments { snapshot2, error2 in
+                            if let error2 = error2 {
+                                print("❌ Error finding ticket (trying String): \(error2.localizedDescription)")
+                                self.showErrorAndResetButton("Failed to save ticket")
+                                return
+                            }
+                            
+                            guard let document = snapshot2?.documents.first else {
+                                print("❌ Ticket document not found (tried both Int and String)")
+                                self.showErrorAndResetButton("Ticket not found. Please try again or contact support.")
+                                return
+                            }
+                            
+                            print("📝 Found ticket document (String search): \(document.documentID)")
+                            self.updateTicketDocument(document: document, updateData: updateData, status: status, priority: priority, deadline: deadline)
+                        }
                     return
                 }
                 
                 guard let document = snapshot?.documents.first else {
-                    print("❌ Ticket document not found")
-                    self.showErrorAndResetButton("Ticket not found")
+                    print("❌ Ticket document not found (Int search failed, trying String...)")
+                    
+                    // ✅ Try again with String
+                    self.db.collection("Tickets")
+                        .whereField("ticket_id", isEqualTo: "\(ticket.ticket_id)")
+                        .getDocuments { snapshot2, error2 in
+                            if let error2 = error2 {
+                                print("❌ Error finding ticket (trying String): \(error2.localizedDescription)")
+                                self.showErrorAndResetButton("Failed to save ticket")
+                                return
+                            }
+                            
+                            guard let document = snapshot2?.documents.first else {
+                                print("❌ Ticket document not found (tried both Int and String)")
+                                self.showErrorAndResetButton("Ticket not found. Please try again or contact support.")
+                                return
+                            }
+                            
+                            print("📝 Found ticket document (String search): \(document.documentID)")
+                            self.updateTicketDocument(document: document, updateData: updateData, status: status, priority: priority, deadline: deadline)
+                        }
                     return
                 }
                 
-                print("📝 Found ticket document: \(document.documentID)")
-                
-                document.reference.updateData(updateData) { error in
-                    DispatchQueue.main.async {
-                        if let error = error {
-                            print("❌ Error updating ticket: \(error.localizedDescription)")
-                            self.showErrorAndResetButton("Failed to save changes")
-                        } else {
-                            print("✅ Ticket updated successfully!")
-                            print("   Status: \(status.rawValue)")
-                            print("   Priority: \(priority.rawValue)")
-                            print("   New deadline: \(DeadlineCalculator.formatDeadline(deadline))")
-                            self.showSuccessAndReturn(deadline: deadline)
-                        }
-                    }
+                print("📝 Found ticket document (Int search): \(document.documentID)")
+                self.updateTicketDocument(document: document, updateData: updateData, status: status, priority: priority, deadline: deadline)
+            }
+    }
+    
+    // MARK: - Update Ticket Document
+    func updateTicketDocument(document: DocumentSnapshot, updateData: [String: Any], status: TicketStatus, priority: TicketPriority, deadline: Date) {
+        document.reference.updateData(updateData) { error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    print("❌ Error updating ticket: \(error.localizedDescription)")
+                    self.showErrorAndResetButton("Failed to save changes")
+                } else {
+                    print("✅ Ticket updated successfully!")
+                    print("   Status: \(status.rawValue)")
+                    print("   Priority: \(priority.rawValue)")
+                    print("   New deadline: \(DeadlineCalculator.formatDeadline(deadline))")
+                    self.showSuccessAndReturn(deadline: deadline)
                 }
             }
+        }
     }
     
     // MARK: - Show Success and Return
