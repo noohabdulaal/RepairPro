@@ -67,9 +67,11 @@ final class EditTechnicianViewController: UIViewController, UITextFieldDelegate 
             usernameTextField.isEnabled = false
             usernameTextField.alpha = 0.6
 
+
             fullNameTextField.returnKeyType = .next
             contactTextField.returnKeyType = .done
         }
+  
 
         private func setupDropdownTap() {
             let tap = UITapGestureRecognizer(
@@ -175,11 +177,15 @@ final class EditTechnicianViewController: UIViewController, UITextFieldDelegate 
                 self.technician.name = name
                 self.technician.department = dept
                 self.technician.phone = phone
+                
+                FirestoreTechnicianService.shared.updateTechnician(self.technician)
+                
 
                 NotificationCenter.default.post(
                     name: .technicianUpdated,
                     object: self.technician
                 )
+
 
                 self.navigationController?.popViewController(animated: true)
             }

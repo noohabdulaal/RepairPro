@@ -38,13 +38,12 @@ final class TechnicianListViewController: UIViewController,
         // MARK: - Lifecycle
         override func viewDidLoad() {
             super.viewDidLoad()
+            
 
-            technicians = [
-                .init(id: UUID(), name: "Ahmed Darwish", department: "IT Support", phone: "+973 3321 8745", username: "Ahmed.Darwish"),
-                .init(id: UUID(), name: "Sara Mansoor", department: "Maintenance", phone: "+973 3952 1067", username: "Sara.Mansoor"),
-                .init(id: UUID(), name: "Khalid Haddad", department: "Facilities", phone: "+973 3664 9821", username: "Khalid.Haddad"),
-                .init(id: UUID(), name: "Ali Ahmed", department: "Network & Systems Operations Department", phone: "+973 3333 3333", username: "Ali.Ahmed")
-            ]
+            FirestoreTechnicianService.shared.fetchTechnicians { [weak self] list in
+                self?.technicians = list
+                self?.applyFiltersAndReload()
+            }
 
             tableView.dataSource = self
             tableView.delegate = self
@@ -62,6 +61,7 @@ final class TechnicianListViewController: UIViewController,
             let tap = UITapGestureRecognizer(target: self, action: #selector(departmentDropdownTapped))
             departmentDropdownView.addGestureRecognizer(tap)
             departmentDropdownView.isUserInteractionEnabled = true
+            
 
             styleScreenBackground()
             styleSectionContainer()
@@ -91,6 +91,7 @@ final class TechnicianListViewController: UIViewController,
                 cornerRadius: 16
             ).cgPath
         }
+  
 
         // MARK: - Actions
         @IBAction func addTechnicianTapped(_ sender: UIButton) {
@@ -170,21 +171,26 @@ final class TechnicianListViewController: UIViewController,
         }
 
         // MARK: - Delete
-        private func confirmDelete(_ tech: Technician) {
-            let alert = UIAlertController(
-                title: "Delete Technician",
-                message: "Are you sure you want to delete \"\(tech.name)\"?\nThis action cannot be undone.",
-                preferredStyle: .alert
-            )
+    private func confirmDelete(_ tech: Technician) {
+        let alert = UIAlertController(
+            title: "Delete Technician",
+            message: "Are you sure you want to delete \"\(tech.name)\"?\nThis action cannot be undone.",
+            preferredStyle: .alert
+        )
 
-            alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
-            alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
-                self.technicians.removeAll { $0.id == tech.id }
-                self.applyFiltersAndReload()
-            })
+        alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
 
-            present(alert, animated: true)
-        }
+        alert.addAction(UIAlertAction(title: "Delete", style: .destructive) { _ in
+
+            FirestoreTechnicianService.shared.deleteTechnician(id: tech.id)
+
+
+            self.technicians.removeAll { $0.id == tech.id }
+            self.applyFiltersAndReload()
+        })
+
+        present(alert, animated: true)
+    }
 
         // MARK: - Table
         func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -246,6 +252,7 @@ final class TechnicianListViewController: UIViewController,
                         phone: phone,
                         username: username
                     )
+                    FirestoreTechnicianService.shared.addTechnician(newTech)
                     self?.technicians.append(newTech)
                     self?.applyFiltersAndReload()
                 }

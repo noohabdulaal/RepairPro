@@ -6,6 +6,11 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		57C4CF842F0A291500868A9D /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 57C4CF832F0A291500868A9D /* FirebaseCore */; };
+		57C4CF862F0A291500868A9D /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 57C4CF852F0A291500868A9D /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		9B8267A42ED2FA36006D71E4 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -65,6 +70,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				57C4CF842F0A291500868A9D /* FirebaseCore in Frameworks */,
+				57C4CF862F0A291500868A9D /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -125,6 +132,8 @@
 			);
 			name = RepairPro;
 			packageProductDependencies = (
+				57C4CF832F0A291500868A9D /* FirebaseCore */,
+				57C4CF852F0A291500868A9D /* FirebaseFirestore */,
 			);
 			productName = RepairPro;
 			productReference = 9B82678D2ED2FA32006D71E4 /* RepairPro.app */;
@@ -208,6 +217,9 @@
 			);
 			mainGroup = 9B8267842ED2FA32006D71E4;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				57C4CF822F0A291500868A9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 9B82678E2ED2FA32006D71E4 /* Products */;
 			projectDirPath = "";
@@ -563,6 +575,30 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		57C4CF822F0A291500868A9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		57C4CF832F0A291500868A9D /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 57C4CF822F0A291500868A9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		57C4CF852F0A291500868A9D /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 57C4CF822F0A291500868A9D /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 9B8267852ED2FA32006D71E4 /* Project object */;
 }
