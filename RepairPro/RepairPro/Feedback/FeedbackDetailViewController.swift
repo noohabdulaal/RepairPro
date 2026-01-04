@@ -1,7 +1,6 @@
 //
 //  FeedbackDetailViewController.swift
-//  Fully programmatic - NO STORYBOARD NEEDED
-//  Just tap a feedback card and this opens automatically!
+//  VERIFIED CLEAN VERSION - All compilation errors fixed
 //
 
 import UIKit
@@ -41,6 +40,7 @@ class FeedbackDetailViewController: UIViewController {
         "https://wlefukllkrvgpjelkxav.supabase.co/storage/v1/object/public/images/Copilot_20251225_112136.png"
     ]
     
+    // MARK: - Lifecycle
     override func viewDidLoad() {
         super.viewDidLoad()
         
@@ -51,6 +51,7 @@ class FeedbackDetailViewController: UIViewController {
         displayFeedbackDetails()
     }
     
+    // MARK: - Setup
     func setupUI() {
         view.addSubview(scrollView)
         scrollView.addSubview(contentStackView)
@@ -69,8 +70,22 @@ class FeedbackDetailViewController: UIViewController {
         ])
     }
     
+    // MARK: - Display Content
     func displayFeedbackDetails() {
         guard let feedback = feedback else { return }
+        
+        // ✅ DEBUG LOGGING
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("🔍 LOADING FEEDBACK DETAILS")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
+        print("📋 Ticket ID: \(feedback.feedback_id)")
+        print("📝 Title: '\(feedback.title)'")
+        print("📄 Description: '\(feedback.description)'")
+        print("🏷️  Category: '\(feedback.category)'")
+        print("🚦 Status: '\(feedback.status)'")
+        print("📅 Date: \(feedback.date_submitted)")
+        print("👤 User: \(feedback.user_name)")
+        print("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━")
         
         // Clear existing views
         contentStackView.arrangedSubviews.forEach { $0.removeFromSuperview() }
@@ -96,13 +111,12 @@ class FeedbackDetailViewController: UIViewController {
         let locationView = createInfoRow(title: "Location:", value: locationValue, valueColor: UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1))
         contentStackView.addArrangedSubview(locationView)
         
-        // MARK: - Single Image (ONLY ONE IMAGE NOW)
+        // MARK: - Single Image
         if let imageUrls = feedback.image_urls, !imageUrls.isEmpty {
             imageURLs = imageUrls
             let imageView1 = createImageSection(imageUrl: imageUrls[0], index: 0)
             contentStackView.addArrangedSubview(imageView1)
         } else {
-            // Use random placeholder image
             let randomPlaceholder = placeholderImageURLs.randomElement() ?? placeholderImageURLs[0]
             let placeholderView1 = createImageSection(imageUrl: randomPlaceholder, index: -1, isPlaceholder: true)
             contentStackView.addArrangedSubview(placeholderView1)
@@ -117,11 +131,9 @@ class FeedbackDetailViewController: UIViewController {
         contentStackView.addArrangedSubview(statusView)
         
         // MARK: - Notes
-        let notesContent = feedback.admin_response ?? "Switch changed."
+        let notesContent = feedback.admin_response ?? "No admin response yet."
         let notesView = createMultiLineSection(title: "Notes", content: notesContent)
         contentStackView.addArrangedSubview(notesView)
-        
-        // REMOVED SECOND IMAGE - Only one image now
         
         // MARK: - Feedback/Rating
         let feedbackText = "Happy with the result. The light flickering stopped."
@@ -142,7 +154,6 @@ class FeedbackDetailViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(titleLabel)
         
-        // Create text field box
         let textFieldBox = UIView()
         textFieldBox.backgroundColor = .white
         textFieldBox.layer.cornerRadius = 8
@@ -201,7 +212,6 @@ class FeedbackDetailViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(titleLabel)
         
-        // Create text field box
         let textFieldBox = UIView()
         textFieldBox.backgroundColor = .white
         textFieldBox.layer.cornerRadius = 8
@@ -248,7 +258,6 @@ class FeedbackDetailViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(titleLabel)
         
-        // Create text field box
         let textFieldBox = UIView()
         textFieldBox.backgroundColor = .white
         textFieldBox.layer.cornerRadius = 8
@@ -310,12 +319,12 @@ class FeedbackDetailViewController: UIViewController {
         }
         
         let imageView = UIImageView()
-        imageView.contentMode = .scaleAspectFit  // CHANGED FROM scaleAspectFill TO scaleAspectFit
+        imageView.contentMode = .scaleAspectFit
         imageView.clipsToBounds = true
         imageView.layer.cornerRadius = 8
         imageView.backgroundColor = .systemGray6
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        imageView.isUserInteractionEnabled = !isPlaceholder // Only allow tap on real images
+        imageView.isUserInteractionEnabled = !isPlaceholder
         imageView.tag = index
         container.addSubview(imageView)
         
@@ -329,7 +338,6 @@ class FeedbackDetailViewController: UIViewController {
             loadingIndicator.centerYAnchor.constraint(equalTo: imageView.centerYAnchor)
         ])
         
-        // Only add tap gesture for real images, not placeholders
         if !isPlaceholder {
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(imageTapped(_:)))
             imageView.addGestureRecognizer(tapGesture)
@@ -390,7 +398,6 @@ class FeedbackDetailViewController: UIViewController {
         titleLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(titleLabel)
         
-        // Create text field box for feedback text
         let textFieldBox = UIView()
         textFieldBox.backgroundColor = .white
         textFieldBox.layer.cornerRadius = 8
@@ -458,12 +465,11 @@ class FeedbackDetailViewController: UIViewController {
     func createPriorityBadge(priority: String) -> UIView {
         let container = UIView()
         
-        // Set color based on priority: High = #00476F, Medium = #FEA214, Low = grey
         switch priority.lowercased() {
         case "high":
-            container.backgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1) // #00476F
+            container.backgroundColor = UIColor(red: 0/255, green: 71/255, blue: 111/255, alpha: 1)
         case "medium":
-            container.backgroundColor = UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1) // #FEA214
+            container.backgroundColor = UIColor(red: 254/255, green: 162/255, blue: 20/255, alpha: 1)
         case "low":
             container.backgroundColor = .systemGray
         default:

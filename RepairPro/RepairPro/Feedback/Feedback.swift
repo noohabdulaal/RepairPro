@@ -1,6 +1,7 @@
 //
 //  Feedback.swift
 //  Modern data model for user feedback submissions - Ticket Style
+//  FIXED VERSION - Handles empty strings and trims whitespace
 //
 
 import Foundation
@@ -71,7 +72,8 @@ struct Feedback: Codable, Identifiable {
         
         // Handle category - if empty string, use "Uncategorized" as default
         let categoryValue = try container.decode(String.self, forKey: .category)
-        category = categoryValue.isEmpty ? "Uncategorized" : categoryValue
+        let trimmedCategory = categoryValue.trimmingCharacters(in: .whitespaces)
+        category = trimmedCategory.isEmpty ? "Uncategorized" : trimmedCategory
         
         // Handle description with smart validation
         // Checks if description is empty, just dots (...), "none", or "n/a"
@@ -106,26 +108,58 @@ struct Feedback: Codable, Identifiable {
             date_submitted = formatter.string(from: Date())
         }
         
-        // Get the status
-        status = try container.decode(String.self, forKey: .status)
+        // ✅ FIX: Handle status - if empty string, use "Pending" as default
+        let statusValue = try container.decode(String.self, forKey: .status)
+        let trimmedStatus = statusValue.trimmingCharacters(in: .whitespaces)
+        status = trimmedStatus.isEmpty ? "Pending" : trimmedStatus
         
-        // Handle title with special logic for malformed database keys
-        // Sometimes the database has keys with spaces like " title" or "title "
-        if let normalTitle = try? container.decode(String.self, forKey: .title), !normalTitle.isEmpty {
-            // Normal title found, use it
-            title = normalTitle
+        // ✅ FIX: Handle title with trimming and special logic for malformed database keys
+        if let normalTitle = try? container.decode(String.self, forKey: .title) {
+            let trimmed = normalTitle.trimmingCharacters(in: .whitespaces)
+            if !trimmed.isEmpty {
+                // Normal title found and not empty after trimming
+                title = trimmed
+            } else {
+                // Title is empty after trimming, search for malformed keys
+                let allKeys = container.allKeys
+                var foundTitle: String?
+                
+                // Loop through all keys looking for anything containing "title"
+                for key in allKeys {
+                    if key.stringValue.contains("title") {
+                        if let value = try? container.decode(String.self, forKey: key) {
+                            let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+                            if !trimmedValue.isEmpty {
+                                foundTitle = trimmedValue
+                                print("⚠️ Found malformed title key: '\(key.stringValue)' with value: '\(trimmedValue)'")
+                                break
+                            }
+                        }
+                    }
+                }
+                
+                // Use found title or "Untitled" as last resort
+                title = foundTitle ?? "Untitled"
+                
+                if foundTitle == nil {
+                    print("⚠️ No title field found, using 'Untitled' as default")
+                }
+            }
         } else {
-            // Title not found or empty, search for malformed keys
+            // Normal title decode failed, search for malformed keys
             let allKeys = container.allKeys
             var foundTitle: String?
             
             // Loop through all keys looking for anything containing "title"
             for key in allKeys {
                 if key.stringValue.contains("title") {
-                    if let value = try? container.decode(String.self, forKey: key), !value.isEmpty {
-                        foundTitle = value
-                        print("⚠️ Found malformed title key: '\(key.stringValue)' with value: '\(value)'")
-                        break
+                    if let value = try? container.decode(String.self, forKey: key) {
+                        let trimmedValue = value.trimmingCharacters(in: .whitespaces)
+                        if !trimmedValue.isEmpty {
+                            foundTitle = trimmedValue
+                            print("⚠️ Found malformed title key: '\(key.stringValue)' with value: '\(trimmedValue)'")
+                            break
+                        }
                     }
                 }
             }
@@ -140,9 +174,25 @@ struct Feedback: Codable, Identifiable {
         
         // Decode all optional fields (won't crash if missing)
         user_email = try? container.decode(String.self, forKey: .user_email)
-        admin_response = try? container.decode(String.self, forKey: .admin_response)
+        
+        // ✅ FIX: Trim admin_response if it exists
+        if let adminResp = try? container.decode(String.self, forKey: .admin_response) {
+            let trimmed = adminResp.trimmingCharacters(in: .whitespaces)
+            admin_response = trimmed.isEmpty ? nil : trimmed
+        } else {
+            admin_response = nil
+        }
+        
         response_date = try? container.decode(String.self, forKey: .response_date)
-        priority = try? container.decode(String.self, forKey: .priority)
+        
+        // ✅ FIX: Trim priority if it exists
+        if let priorityValue = try? container.decode(String.self, forKey: .priority) {
+            let trimmed = priorityValue.trimmingCharacters(in: .whitespaces)
+            priority = trimmed.isEmpty ? nil : trimmed
+        } else {
+            priority = nil
+        }
+        
         campus = try? container.decode(String.self, forKey: .campus)
         image_urls = try? container.decode([String].self, forKey: .image_urls)
         tags = try? container.decode([String].self, forKey: .tags)
