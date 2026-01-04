@@ -537,7 +537,7 @@
         <!--Edit-->
         <scene sceneID="ow0-aN-9Kk">
             <objects>
-                <viewController id="MCu-Ll-f3M" customClass="EditTicketViewController" customModule="RepairPro" customModuleProvider="target" sceneMemberID="viewController">
+                <viewController storyboardIdentifier="editTicket" id="MCu-Ll-f3M" customClass="EditTicketViewController" customModule="RepairPro" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Vun-X8-YN2">
                         <rect key="frame" x="0.0" y="0.0" width="393" height="852"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
@@ -908,7 +908,6 @@
                                 <buttonConfiguration key="configuration" style="tinted" title="Edit Ticket"/>
                                 <connections>
                                     <action selector="EditTicketBtn:" destination="gMv-zU-vu3" eventType="touchUpInside" id="qx4-aG-FO3"/>
-                                    <segue destination="MCu-Ll-f3M" kind="show" identifier="toEditTicket" id="G8i-yL-It7"/>
                                 </connections>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" fixedFrame="YES" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="UGs-1i-hUf">

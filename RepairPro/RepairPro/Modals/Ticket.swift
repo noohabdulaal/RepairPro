@@ -194,24 +194,19 @@ extension Ticket {
                     userName: userName
                 )
                 
-                // Step 3: Upload image if exists
+                // Step 3: Convert image to Base64 if exists
                 if let image = image {
-                    print("📝 Step 3: Uploading image...")
-                    uploadImage(image, ticketNumber: ticketNumber) { imageResult in
-                        switch imageResult {
-                        case .success(let imageUrl):
-                            print("✅ Image uploaded: \(imageUrl)")
-                            ticket.imageUrl = imageUrl
-                            saveToFirestore(ticket, completion: completion)
-                        case .failure(let error):
-                            print("❌ Image upload failed: \(error.localizedDescription)")
-                            completion(.failure(error))
-                        }
+                    print("📝 Step 3: Converting image to Base64...")
+                    if let base64String = convertImageToBase64(image) {
+                        print("✅ Image converted to Base64 (length: \(base64String.count) chars)")
+                        ticket.imageUrl = base64String
+                    } else {
+                        print("⚠️ Failed to convert image, saving without image...")
                     }
-                } else {
-                    print("📝 Step 3: No image to upload, saving ticket...")
-                    saveToFirestore(ticket, completion: completion)
                 }
+                
+                print("📝 Saving ticket to Firestore...")
+                saveToFirestore(ticket, completion: completion)
                 
             case .failure(let error):
                 print("❌ Failed to get ticket number: \(error.localizedDescription)")
@@ -249,10 +244,11 @@ extension Ticket {
     ) {
         print("🔍 ===== FETCHING PREVIOUS TICKETS =====")
         print("📝 User ID: \(userId)")
+        print("📝 Looking for ALL tickets (any status)")
         
         db.collection("tickets")
             .whereField("user_id", isEqualTo: userId)
-            .order(by: "created_at", descending: true)
+            .order(by: "created_at", descending: false)
             .getDocuments { snapshot, error in
                 if let error = error {
                     print("❌ Error fetching previous tickets: \(error.localizedDescription)")
@@ -449,29 +445,28 @@ extension Ticket {
         }
     }
     
-    private static func uploadImage(_ image: UIImage, ticketNumber: Int, completion: @escaping (Result<String, Error>) -> Void) {
-        guard let imageData = image.jpegData(compressionQuality: 0.7) else {
-            completion(.failure(NSError(domain: "Ticket", code: 500, userInfo: [NSLocalizedDescriptionKey: "Failed to compress image"])))
-            return
+    // MARK: - Convert Image to Base64
+    private static func convertImageToBase64(_ image: UIImage) -> String? {
+        // Compress image to reduce size (important for Firestore)
+        guard let imageData = image.jpegData(compressionQuality: 0.5) else {
+            return nil
         }
         
-        let imageName = "ticket_\(ticketNumber)_\(UUID().uuidString).jpg"
-        let storageRef = storage.reference().child("tickets/\(ticketNumber)/\(imageName)")
+        // Convert to Base64
+        let base64String = imageData.base64EncodedString()
+        return "data:image/jpeg;base64,\(base64String)"
+    }
+    
+    // MARK: - Convert Base64 to Image
+    static func convertBase64ToImage(_ base64String: String) -> UIImage? {
+        // Remove the data:image/jpeg;base64, prefix if present
+        let base64 = base64String.replacingOccurrences(of: "data:image/jpeg;base64,", with: "")
         
-        storageRef.putData(imageData, metadata: nil) { metadata, error in
-            if let error = error {
-                completion(.failure(error))
-                return
-            }
-            
-            storageRef.downloadURL { url, error in
-                if let error = error {
-                    completion(.failure(error))
-                } else if let url = url {
-                    completion(.success(url.absoluteString))
-                }
-            }
+        guard let imageData = Data(base64Encoded: base64) else {
+            return nil
         }
+        
+        return UIImage(data: imageData)
     }
     
     private static func saveToFirestore(_ ticket: Ticket, completion: @escaping (Result<(String, Int), Error>) -> Void) {

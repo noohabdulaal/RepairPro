@@ -161,29 +161,48 @@ class PreviousTicketsViewController: UIViewController {
     
     // MARK: - Load Image
     func loadImage(from url: URL) {
-        URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
-            if let data = data, let image = UIImage(data: data) {
-                DispatchQueue.main.async {
-                    self?.Image.image = image
-                }
+        // Check if it's a Base64 string (starts with data:image)
+        let urlString = url.absoluteString
+        
+        if urlString.hasPrefix("data:image") {
+            // It's Base64 - decode it
+            if let image = Ticket.convertBase64ToImage(urlString) {
+                self.Image.image = image
+            } else {
+                self.Image.image = UIImage(systemName: "photo")
             }
-        }.resume()
+        } else {
+            // It's a URL - download it (for old tickets with Firebase Storage)
+            URLSession.shared.dataTask(with: url) { [weak self] data, response, error in
+                if let data = data, let image = UIImage(data: data) {
+                    DispatchQueue.main.async {
+                        self?.Image.image = image
+                    }
+                }
+            }.resume()
+        }
     }
     
     // MARK: - Rate Ticket Button
     @IBAction func RateTicketBtn(_ sender: Any) {
         guard let ticket = currentTicket else { return }
         
-        // Navigate to Rate/Feedback page
-        performSegue(withIdentifier: "toRateFeedback", sender: ticket)
+        // Navigate to Rate/Feedback page programmatically
+        if let rateVC = storyboard?.instantiateViewController(withIdentifier: "rateFeedback") as? RateFeedbackViewController {
+            rateVC.ticket = ticket
+            navigationController?.pushViewController(rateVC, animated: true)
+        }
     }
     
     // MARK: - Edit Ticket Button
     @IBAction func EditTicketBtn(_ sender: Any) {
         guard let ticket = currentTicket else { return }
         
-        // Navigate to Edit page
-        performSegue(withIdentifier: "toEditTicket", sender: ticket)
+        // Navigate to Edit page programmatically
+        if let editVC = storyboard?.instantiateViewController(withIdentifier: "editTicket") as? EditTicketViewController {
+            editVC.ticket = ticket
+            navigationController?.pushViewController(editVC, animated: true)
+        }
     }
     
     // MARK: - Cancel Ticket Button
@@ -245,22 +264,6 @@ class PreviousTicketsViewController: UIViewController {
         })
         
         present(alert, animated: true)
-    }
-    
-    // MARK: - Navigation
-    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
-        if segue.identifier == "toRateFeedback" {
-            if let rateVC = segue.destination as? RateFeedbackViewController,
-               let ticket = sender as? Ticket {
-                rateVC.ticket = ticket
-            }
-        }
-        else if segue.identifier == "toEditTicket" {
-            if let editVC = segue.destination as? EditTicketViewController,
-               let ticket = sender as? Ticket {
-                editVC.ticket = ticket
-            }
-        }
     }
     
     // MARK: - Helper
